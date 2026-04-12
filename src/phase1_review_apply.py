@@ -7,7 +7,7 @@ from typing import Any
 
 from docx import Document
 
-from src.review_schema import ErrorRecord, ReviewSchema
+from src.review_schema import ErrorRecord, ReviewSchema, validate_reviewed_json_payload
 
 
 @dataclass(frozen=True)
@@ -52,11 +52,10 @@ def apply_review_docx(
         raw = json.loads(review_json_path.read_text(encoding="utf-8"))
     except Exception as exc:
         return _flow_error("REVIEW_JSON_INVALID", f"無法讀取 reviewed JSON：{review_json_path}", str(exc))
-    if not isinstance(raw, dict):
-        return _flow_error("REVIEW_JSON_INVALID", "reviewed JSON 頂層必須是物件。", "")
-    raw_candidates = raw.get("review_candidates")
-    if not isinstance(raw_candidates, list):
-        return _flow_error("REVIEW_CANDIDATES_INVALID", "review_candidates 必須存在且必須是陣列。", "")
+    review_json_errors = validate_reviewed_json_payload(raw)
+    if review_json_errors:
+        return _flow_error_record(review_json_errors[0])
+    raw_candidates = raw.get("review_candidates", [])
 
     try:
         document = Document(input_path)
@@ -241,8 +240,12 @@ def _reviewed_output_path(
 
 
 def _flow_error(code: str, message: str, technical_detail: str) -> ReviewApplyResult:
+    return _flow_error_record(ErrorRecord(code=code, message=message, technical_detail=technical_detail))
+
+
+def _flow_error_record(error: ErrorRecord) -> ReviewApplyResult:
     return ReviewApplyResult(
-        schema=ReviewSchema(errors=[ErrorRecord(code=code, message=message, technical_detail=technical_detail)]),
+        schema=ReviewSchema(errors=[error]),
         output_path=None,
         applied=False,
         candidate_results=[],

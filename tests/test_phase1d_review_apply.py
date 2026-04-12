@@ -70,7 +70,6 @@ def test_apply_review_skips_disallowed_statuses() -> None:
             _candidate(candidate_id="pending", status="pending", char_start=0, char_end=2),
             _candidate(candidate_id="rejected", status="rejected", char_start=2, char_end=4),
             _candidate(candidate_id="skip", status="skip", char_start=4, char_end=6),
-            _candidate(candidate_id="auto", status="auto_accepted", char_start=6, char_end=8),
         ],
     )
 
