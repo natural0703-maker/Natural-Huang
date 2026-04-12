@@ -53,6 +53,30 @@ def should_autofill_output_dir(
     return normalize_path_for_display(current_output_text) == normalize_path_for_display(last_auto_output_text)
 
 
+def _phase1_paragraph_merge_summary(result: Any) -> dict[str, int | str]:
+    apply_result = getattr(result, "apply_result", None)
+    summary = getattr(apply_result, "paragraph_merge_summary", None) if apply_result is not None else None
+    if summary is None:
+        return {
+            "applied_count": 0,
+            "skipped_count": 0,
+            "failed_count": 0,
+            "codes_text": "無",
+        }
+
+    codes = getattr(summary, "codes", {}) or {}
+    codes_text = "無"
+    if codes:
+        codes_text = ", ".join(f"{code}={count}" for code, count in sorted(codes.items()))
+
+    return {
+        "applied_count": int(getattr(summary, "applied_count", 0) or 0),
+        "skipped_count": int(getattr(summary, "skipped_count", 0) or 0),
+        "failed_count": int(getattr(summary, "failed_count", 0) or 0),
+        "codes_text": codes_text,
+    }
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -497,6 +521,7 @@ class MainWindow(QMainWindow):
         toc_status = str(getattr(toc, "status", "not_requested"))
         toc_fallback = "是" if bool(getattr(toc, "fallback_used", False)) else "否"
         toc_chapter_count = int(getattr(toc, "chapter_count", 0) or 0)
+        merge_summary = _phase1_paragraph_merge_summary(result)
 
         if operation == "analyze":
             summary = (
@@ -525,7 +550,11 @@ class MainWindow(QMainWindow):
 
         summary = (
             f"{summary} | TOC 狀態：{toc_status} | TOC fallback：{toc_fallback} | "
-            f"TOC 章節數：{toc_chapter_count}"
+            f"TOC 章節數：{toc_chapter_count} | "
+            f"段落合併套用數：{merge_summary['applied_count']} | "
+            f"段落合併略過數：{merge_summary['skipped_count']} | "
+            f"段落合併失敗數：{merge_summary['failed_count']} | "
+            f"段落合併結果碼摘要：{merge_summary['codes_text']}"
         )
         self.phase1_result_label.setText(summary)
         if errors:

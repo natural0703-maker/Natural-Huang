@@ -32,7 +32,7 @@ Phase 2C 已完成 convert 流程的 TOC 最小方案，Phase 2D-1 已完成 app
 
 ### 1.5 paragraph merge 後續 GUI 與診斷仍未完成
 
-Phase 2E-2 已完成 paragraph merge apply 最小套用，Phase 2E-3 已完成 paragraph merge summary 與 JSON / TXT report 輸出；但 GUI paragraph merge summary、GUI paragraph merge controls、source mismatch 診斷面板仍未完成。
+Phase 2E-2 已完成 paragraph merge apply 最小套用，Phase 2E-3 已完成 paragraph merge summary 與 JSON / TXT report 輸出，Phase 2E-4 已完成 GUI paragraph merge summary 顯示；但 GUI paragraph merge controls、source mismatch 診斷面板仍未完成。
 
 ### 1.6 run-level 格式保真尚未實作
 
@@ -118,10 +118,14 @@ Phase 2E-2 已完成 paragraph merge apply 最小套用：在既有 `apply_revie
 
 ### 3.13 Phase 2E-3 paragraph merge result summary / report 輸出已完成
 
-Phase 2E-3 已完成 paragraph merge result summary 與 JSON / TXT report 輸出：`ReviewApplyResult` 目前會帶出 `paragraph_merge_summary`，JSON report top-level 已新增 `paragraph_merge`，TXT report 已新增段落合併套用數、略過數、失敗數與結果碼摘要。此能力不包含 GUI paragraph merge summary、GUI controls、source mismatch 診斷面板或逐筆 candidate 明細 dump。
+Phase 2E-3 已完成 paragraph merge result summary 與 JSON / TXT report 輸出：`ReviewApplyResult` 目前會帶出 `paragraph_merge_summary`，JSON report top-level 已新增 `paragraph_merge`，TXT report 已新增段落合併套用數、略過數、失敗數與結果碼摘要。此能力不包含 GUI controls、source mismatch 診斷面板或逐筆 candidate 明細 dump。
+
+### 3.14 Phase 2E-4 GUI paragraph merge summary 顯示已完成
+
+Phase 2E-4 已完成 GUI paragraph merge summary 顯示：GUI 結果摘要區現在會固定顯示段落合併套用數、略過數、失敗數與結果碼摘要，且固定接在 TOC 摘要後面。analyze / convert 會顯示預設 `0 / 0 / 0 / 無`，`codes` 非空時依 code 名稱排序輸出。此能力不包含 GUI paragraph merge controls、source mismatch 診斷面板、reviewed JSON 編輯器或 paragraph merge apply 核心規則變更。
 
 ## 4. 驗證狀態
 
-- 完整 pytest：`225 passed`
+- 完整 pytest：`228 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過

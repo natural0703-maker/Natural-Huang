@@ -23,11 +23,12 @@ Phase 1 mainline is frozen and verified.
 - Phase 2E-1 paragraph merge schema validation.
 - Phase 2E-2 paragraph merge apply.
 - Phase 2E-3 paragraph merge summary reporting.
+- Phase 2E-4 GUI paragraph merge summary.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 225 passed.
+- Full pytest passed: 228 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
@@ -38,8 +39,8 @@ Phase 1 mainline is frozen and verified.
 - GUI TOC controls.
 - advanced TOC behavior.
 - paragraph merge source mismatch verification against docx content.
-- GUI paragraph merge summary.
 - GUI paragraph merge controls.
 - source mismatch diagnostics.
+- reviewed JSON editor.
 - run-level formatting fidelity.
 - full legacy entry replacement.

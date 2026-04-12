@@ -194,6 +194,28 @@ def test_phase1_main_window_analyze_shows_default_toc_status(monkeypatch, window
     assert "TOC 章節數：0" in text
 
 
+def test_phase1_main_window_analyze_shows_default_paragraph_merge_summary(monkeypatch, window) -> None:
+    expected = SimpleNamespace(
+        operation="analyze",
+        schema=ReviewSchema(toc=TocState()),
+        config_check=SimpleNamespace(warnings=[]),
+        output_path=None,
+        apply_result=None,
+    )
+    monkeypatch.setattr(main_window_clean.phase1_worker, "run_phase1_gui_request", lambda request: expected)
+
+    _set_phase1_operation(window, "analyze")
+    window.phase1_input_edit.setText("novel.docx")
+
+    window._run_phase1()
+
+    text = window.phase1_result_label.text()
+    assert "段落合併套用數：0" in text
+    assert "段落合併略過數：0" in text
+    assert "段落合併失敗數：0" in text
+    assert "段落合併結果碼摘要：無" in text
+
+
 def test_phase1_main_window_convert_shows_toc_status(monkeypatch, window) -> None:
     expected = SimpleNamespace(
         operation="convert",
@@ -242,10 +264,57 @@ def test_phase1_main_window_apply_review_shows_toc_fallback_status(monkeypatch, 
     assert "TOC 章節數：3" in text
 
 
+def test_phase1_main_window_apply_review_shows_paragraph_merge_summary(monkeypatch, window) -> None:
+    merge_summary = SimpleNamespace(
+        applied_count=2,
+        skipped_count=1,
+        failed_count=1,
+        codes={
+            "PARAGRAPH_MERGE_SOURCE_MISMATCH": 1,
+            "APPLIED_PARAGRAPH_MERGE": 2,
+        },
+    )
+    apply_result = SimpleNamespace(
+        applied_count=1,
+        skipped_count=0,
+        failed_count=0,
+        paragraph_merge_summary=merge_summary,
+    )
+    expected = SimpleNamespace(
+        operation="apply_review",
+        schema=ReviewSchema(toc=TocState()),
+        config_check=SimpleNamespace(warnings=[]),
+        output_path=Path("reviewed.docx"),
+        apply_result=apply_result,
+    )
+    monkeypatch.setattr(main_window_clean.phase1_worker, "run_phase1_gui_request", lambda request: expected)
+
+    _set_phase1_operation(window, "apply_review")
+    window.phase1_input_edit.setText("converted.docx")
+    window.phase1_apply_review_edit.setText("reviewed.json")
+    window.phase1_output_dir_edit.setText("out")
+
+    window._run_phase1()
+
+    text = window.phase1_result_label.text()
+    assert "段落合併套用數：2" in text
+    assert "段落合併略過數：1" in text
+    assert "段落合併失敗數：1" in text
+    assert "段落合併結果碼摘要：" in text
+    assert "APPLIED_PARAGRAPH_MERGE=2" in text
+    assert "PARAGRAPH_MERGE_SOURCE_MISMATCH=1" in text
+
+
 def test_phase1_main_window_does_not_add_toc_controls(window) -> None:
     assert not hasattr(window, "phase1_create_toc_var")
     assert not hasattr(window, "phase1_create_toc_checkbox")
     assert not hasattr(window, "phase1_create_toc_button")
+
+
+def test_phase1_main_window_does_not_add_paragraph_merge_controls(window) -> None:
+    assert not hasattr(window, "phase1_paragraph_merge_var")
+    assert not hasattr(window, "phase1_paragraph_merge_checkbox")
+    assert not hasattr(window, "phase1_paragraph_merge_button")
 
 
 def test_phase1_main_window_shows_first_schema_error(monkeypatch, window) -> None:
