@@ -43,6 +43,7 @@ def build_phase1_report_payload(result: Phase1StubResult) -> dict[str, Any]:
         "success": len(schema.errors) == 0,
         "output_path": str(result.output_path) if result.output_path is not None else None,
         "counts": counts,
+        "toc": _toc_payload(result),
         "config_warnings": _config_warnings(result),
         "errors": [_error_to_dict(error) for error in schema.errors],
     }
@@ -127,6 +128,9 @@ def _build_txt_report(payload: dict[str, Any]) -> str:
         f"高風險候選數：{counts.get('review_candidates', 0)}",
         f"段落合併候選數：{counts.get('paragraph_merge_candidates', 0)}",
         f"錯誤數：{counts.get('errors', 0)}",
+        f"TOC 狀態：{payload['toc']['status']}",
+        f"TOC fallback：{'是' if payload['toc']['fallback_used'] else '否'}",
+        f"TOC 章節數：{payload['toc']['chapter_count']}",
         f"設定警告數：{len(payload['config_warnings'])}",
     ]
     if payload["operation"] == "apply_review":
@@ -153,6 +157,16 @@ def _error_to_dict(error: ErrorRecord) -> dict[str, str]:
         "code": error.code,
         "message": error.message,
         "technical_detail": error.technical_detail,
+    }
+
+
+def _toc_payload(result: Phase1StubResult) -> dict[str, Any]:
+    toc = result.schema.toc
+    return {
+        "requested": toc.requested,
+        "status": toc.status,
+        "fallback_used": toc.fallback_used,
+        "chapter_count": toc.chapter_count,
     }
 
 
