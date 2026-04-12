@@ -44,6 +44,7 @@ def build_phase1_report_payload(result: Phase1StubResult) -> dict[str, Any]:
         "output_path": str(result.output_path) if result.output_path is not None else None,
         "counts": counts,
         "toc": _toc_payload(result),
+        "paragraph_merge": _paragraph_merge_payload(result),
         "config_warnings": _config_warnings(result),
         "errors": [_error_to_dict(error) for error in schema.errors],
     }
@@ -131,6 +132,10 @@ def _build_txt_report(payload: dict[str, Any]) -> str:
         f"TOC 狀態：{payload['toc']['status']}",
         f"TOC fallback：{'是' if payload['toc']['fallback_used'] else '否'}",
         f"TOC 章節數：{payload['toc']['chapter_count']}",
+        f"段落合併套用數：{payload['paragraph_merge']['applied_count']}",
+        f"段落合併略過數：{payload['paragraph_merge']['skipped_count']}",
+        f"段落合併失敗數：{payload['paragraph_merge']['failed_count']}",
+        f"段落合併結果碼摘要：{_format_paragraph_merge_codes(payload['paragraph_merge']['codes'])}",
         f"設定警告數：{len(payload['config_warnings'])}",
     ]
     if payload["operation"] == "apply_review":
@@ -168,6 +173,30 @@ def _toc_payload(result: Phase1StubResult) -> dict[str, Any]:
         "fallback_used": toc.fallback_used,
         "chapter_count": toc.chapter_count,
     }
+
+
+def _paragraph_merge_payload(result: Phase1StubResult) -> dict[str, Any]:
+    apply_result = result.apply_result
+    summary = getattr(apply_result, "paragraph_merge_summary", None) if apply_result is not None else None
+    if summary is None:
+        return {
+            "applied_count": 0,
+            "skipped_count": 0,
+            "failed_count": 0,
+            "codes": {},
+        }
+    return {
+        "applied_count": summary.applied_count,
+        "skipped_count": summary.skipped_count,
+        "failed_count": summary.failed_count,
+        "codes": dict(summary.codes),
+    }
+
+
+def _format_paragraph_merge_codes(codes: dict[str, int]) -> str:
+    if not codes:
+        return "無"
+    return ", ".join(f"{code}={count}" for code, count in sorted(codes.items()))
 
 
 def _config_warnings(result: Phase1StubResult) -> list[str]:

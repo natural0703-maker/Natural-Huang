@@ -30,9 +30,9 @@ GUI 主視窗第一版已完成最小接線，可最小操作 Phase 1 的 analyz
 
 Phase 2C 已完成 convert 流程的 TOC 最小方案，Phase 2D-1 已完成 apply_review 流程的 TOC 支援，Phase 2D-2 已完成 report TOC 狀態摘要，Phase 2D-3 已完成 GUI TOC 狀態摘要顯示；但尚未支援 TOC GUI 操作、既有 TOC 更新 / 合併、多層目錄、頁碼更新等更完整的 TOC 行為。
 
-### 1.5 paragraph merge 後續摘要與操作仍未完成
+### 1.5 paragraph merge 後續 GUI 與診斷仍未完成
 
-Phase 2E-2 已完成 paragraph merge apply 最小套用；但 paragraph merge result summary、GUI paragraph merge controls / status display、source mismatch 輔助診斷仍未完成。
+Phase 2E-2 已完成 paragraph merge apply 最小套用，Phase 2E-3 已完成 paragraph merge summary 與 JSON / TXT report 輸出；但 GUI paragraph merge summary、GUI paragraph merge controls、source mismatch 診斷面板仍未完成。
 
 ### 1.6 run-level 格式保真尚未實作
 
@@ -116,8 +116,12 @@ Phase 2E-1 已完成 `paragraph_merge_candidates` 的 reviewed JSON / schema 契
 
 Phase 2E-2 已完成 paragraph merge apply 最小套用：在既有 `apply_review()` 流程中，`status == "accepted"` 且 `type == "paragraph_merge"` 的相鄰兩段候選可依 `previous_text.rstrip() + next_text.lstrip()` 合併，成功後刪除下一段，並依 `paragraph_index` 降序處理。此能力不自動插入空格、不做標點修正、不保證 run-level 格式保真，也不新增 GUI paragraph merge controls 或 report merge summary。
 
+### 3.13 Phase 2E-3 paragraph merge result summary / report 輸出已完成
+
+Phase 2E-3 已完成 paragraph merge result summary 與 JSON / TXT report 輸出：`ReviewApplyResult` 目前會帶出 `paragraph_merge_summary`，JSON report top-level 已新增 `paragraph_merge`，TXT report 已新增段落合併套用數、略過數、失敗數與結果碼摘要。此能力不包含 GUI paragraph merge summary、GUI controls、source mismatch 診斷面板或逐筆 candidate 明細 dump。
+
 ## 4. 驗證狀態
 
-- 完整 pytest：`217 passed`
+- 完整 pytest：`225 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過

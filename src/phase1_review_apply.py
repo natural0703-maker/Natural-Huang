@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,29 @@ from docx import Document
 from src.frozen_spec_v1 import HEADING_STYLE_NAME
 from src.phase2_toc_builder import TOC_STATUS_FAILED, insert_minimal_toc
 from src.review_schema import ErrorRecord, ReviewSchema, validate_reviewed_json_payload
+
+
+PARAGRAPH_MERGE_APPLIED_CODES = frozenset({"APPLIED_PARAGRAPH_MERGE"})
+PARAGRAPH_MERGE_SKIPPED_CODES = frozenset(
+    {
+        "SKIPPED_PARAGRAPH_MERGE_STATUS",
+        "SKIPPED_UNSUPPORTED_TYPE",
+        "PARAGRAPH_MERGE_CONFLICT",
+        "PARAGRAPH_MERGE_CHAPTER_BOUNDARY",
+    }
+)
+PARAGRAPH_MERGE_FAILED_CODES = frozenset(
+    {
+        "PARAGRAPH_MERGE_PARAGRAPH_INDEX_INVALID",
+        "PARAGRAPH_MERGE_NOT_ADJACENT",
+        "PARAGRAPH_MERGE_PARAGRAPH_EMPTY",
+        "PARAGRAPH_MERGE_SOURCE_MISMATCH",
+        "PARAGRAPH_MERGE_APPLY_FAILED",
+    }
+)
+PARAGRAPH_MERGE_RESULT_CODES = (
+    PARAGRAPH_MERGE_APPLIED_CODES | PARAGRAPH_MERGE_SKIPPED_CODES | PARAGRAPH_MERGE_FAILED_CODES
+)
 
 
 @dataclass(frozen=True)
@@ -23,6 +47,14 @@ class ReviewApplyCandidateResult:
 
 
 @dataclass(frozen=True)
+class ParagraphMergeSummary:
+    applied_count: int = 0
+    skipped_count: int = 0
+    failed_count: int = 0
+    codes: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class ReviewApplyResult:
     schema: ReviewSchema
     output_path: Path | None
@@ -31,6 +63,7 @@ class ReviewApplyResult:
     applied_count: int
     skipped_count: int
     failed_count: int
+    paragraph_merge_summary: ParagraphMergeSummary = field(default_factory=ParagraphMergeSummary)
 
 
 def apply_review_docx(
@@ -131,6 +164,7 @@ def apply_review_docx(
     applied_count = sum(1 for item in candidate_results if item.applied)
     skipped_count = sum(1 for item in candidate_results if not item.applied and _is_skipped_result(item.result_code))
     failed_count = sum(1 for item in candidate_results if not item.applied and not _is_skipped_result(item.result_code))
+    paragraph_merge_summary = build_paragraph_merge_summary(candidate_results)
     return ReviewApplyResult(
         schema=ReviewSchema(toc=toc),
         output_path=output_path,
@@ -139,6 +173,19 @@ def apply_review_docx(
         applied_count=applied_count,
         skipped_count=skipped_count,
         failed_count=failed_count,
+        paragraph_merge_summary=paragraph_merge_summary,
+    )
+
+
+def build_paragraph_merge_summary(candidate_results: list[ReviewApplyCandidateResult]) -> ParagraphMergeSummary:
+    codes = Counter(
+        item.result_code for item in candidate_results if item.result_code in PARAGRAPH_MERGE_RESULT_CODES
+    )
+    return ParagraphMergeSummary(
+        applied_count=sum(codes[code] for code in PARAGRAPH_MERGE_APPLIED_CODES),
+        skipped_count=sum(codes[code] for code in PARAGRAPH_MERGE_SKIPPED_CODES),
+        failed_count=sum(codes[code] for code in PARAGRAPH_MERGE_FAILED_CODES),
+        codes=dict(sorted(codes.items())),
     )
 
 
@@ -474,4 +521,5 @@ def _flow_error_record(error: ErrorRecord) -> ReviewApplyResult:
         applied_count=0,
         skipped_count=0,
         failed_count=0,
+        paragraph_merge_summary=ParagraphMergeSummary(),
     )
