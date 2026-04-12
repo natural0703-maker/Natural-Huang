@@ -176,6 +176,5 @@ def test_paragraph_merge_supported_statuses_pass_validation() -> None:
 
         assert result.schema.errors == []
         assert result.apply_result is not None
-        assert result.apply_result.candidate_results == []
         assert result.output_path is not None
         assert result.output_path.exists()

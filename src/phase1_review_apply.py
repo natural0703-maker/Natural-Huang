@@ -60,6 +60,7 @@ def apply_review_docx(
         return _flow_error_record(review_json_errors[0])
     raw_chapter_candidates = raw.get("chapter_candidates", [])
     raw_candidates = raw.get("review_candidates", [])
+    raw_paragraph_merge_candidates = raw.get("paragraph_merge_candidates", [])
 
     try:
         document = Document(input_path)
@@ -115,6 +116,7 @@ def apply_review_docx(
         candidate_results.append(_candidate_result(candidate, "APPLIED", True, "已套用。"))
 
     _apply_chapter_candidates(document, raw_chapter_candidates, candidate_results)
+    _apply_paragraph_merge_candidates(document, raw_paragraph_merge_candidates, candidate_results)
     toc = insert_minimal_toc(document, requested=create_toc)
     if toc.status == TOC_STATUS_FAILED:
         return _flow_error("TOC_INSERT_FAILED", "無法建立目錄，也無法建立 fallback 章節清單。", "")
@@ -127,8 +129,8 @@ def apply_review_docx(
         return _flow_error("DOCX_WRITE_FAILED", f"無法寫入 reviewed DOCX：{output_path}", str(exc))
 
     applied_count = sum(1 for item in candidate_results if item.applied)
-    skipped_count = sum(1 for item in candidate_results if not item.applied and item.result_code.startswith("SKIPPED"))
-    failed_count = sum(1 for item in candidate_results if not item.applied and not item.result_code.startswith("SKIPPED"))
+    skipped_count = sum(1 for item in candidate_results if not item.applied and _is_skipped_result(item.result_code))
+    failed_count = sum(1 for item in candidate_results if not item.applied and not _is_skipped_result(item.result_code))
     return ReviewApplyResult(
         schema=ReviewSchema(toc=toc),
         output_path=output_path,
@@ -187,6 +189,80 @@ def _apply_chapter_candidates(
         )
 
 
+def _apply_paragraph_merge_candidates(
+    document,
+    raw_paragraph_merge_candidates: list[Any],
+    candidate_results: list[ReviewApplyCandidateResult],
+) -> None:
+    candidates_with_order: list[tuple[int, dict[str, Any]]] = []
+    for order, item in enumerate(raw_paragraph_merge_candidates):
+        candidate, result = _validate_paragraph_merge_candidate(item)
+        if result is not None:
+            candidate_results.append(result)
+            continue
+        assert candidate is not None
+        candidates_with_order.append((order, candidate))
+
+    used_paragraph_indices: set[int] = set()
+    for _order, candidate in sorted(
+        candidates_with_order,
+        key=lambda pair: (pair[1]["paragraph_index"], -pair[0]),
+        reverse=True,
+    ):
+        paragraph_index = candidate["paragraph_index"]
+        next_paragraph_index = candidate["next_paragraph_index"]
+        if paragraph_index in used_paragraph_indices or next_paragraph_index in used_paragraph_indices:
+            candidate_results.append(
+                _candidate_result(candidate, "PARAGRAPH_MERGE_CONFLICT", False, "段落已被其他 merge candidate 使用。")
+            )
+            continue
+
+        paragraphs = document.paragraphs
+        if paragraph_index < 0 or next_paragraph_index < 0 or next_paragraph_index >= len(paragraphs):
+            candidate_results.append(
+                _candidate_result(candidate, "PARAGRAPH_MERGE_PARAGRAPH_INDEX_INVALID", False, "merge candidate 段落索引不存在。")
+            )
+            continue
+        if next_paragraph_index != paragraph_index + 1:
+            candidate_results.append(
+                _candidate_result(candidate, "PARAGRAPH_MERGE_NOT_ADJACENT", False, "merge candidate 只能合併相鄰兩段。")
+            )
+            continue
+
+        paragraph = paragraphs[paragraph_index]
+        next_paragraph = paragraphs[next_paragraph_index]
+        previous_text = paragraph.text
+        next_text = next_paragraph.text
+        if not previous_text.strip() or not next_text.strip():
+            candidate_results.append(
+                _candidate_result(candidate, "PARAGRAPH_MERGE_PARAGRAPH_EMPTY", False, "merge candidate 目標段落不可為空白。")
+            )
+            continue
+        if _is_heading_paragraph(paragraph) or _is_heading_paragraph(next_paragraph):
+            candidate_results.append(
+                _candidate_result(candidate, "PARAGRAPH_MERGE_CHAPTER_BOUNDARY", False, "merge candidate 不可跨章節標題段落。")
+            )
+            continue
+        if previous_text != candidate["source_text"] or next_text != candidate["next_source_text"]:
+            candidate_results.append(
+                _candidate_result(candidate, "PARAGRAPH_MERGE_SOURCE_MISMATCH", False, "merge candidate 來源文字與目前文件不符。")
+            )
+            continue
+
+        try:
+            paragraph.text = previous_text.rstrip() + next_text.lstrip()
+            _delete_paragraph(next_paragraph)
+        except Exception as exc:
+            candidate_results.append(
+                _candidate_result(candidate, "PARAGRAPH_MERGE_APPLY_FAILED", False, f"段落合併失敗：{exc}")
+            )
+            continue
+
+        used_paragraph_indices.add(paragraph_index)
+        used_paragraph_indices.add(next_paragraph_index)
+        candidate_results.append(_candidate_result(candidate, "APPLIED_PARAGRAPH_MERGE", True, "段落合併已套用。"))
+
+
 def _validate_chapter_candidate(item: Any) -> tuple[dict[str, Any] | None, ReviewApplyCandidateResult | None]:
     if not isinstance(item, dict):
         return None, ReviewApplyCandidateResult("", "", "SKIPPED_INVALID_CANDIDATE", None, False, "chapter candidate 格式不合法")
@@ -211,6 +287,50 @@ def _validate_chapter_candidate(item: Any) -> tuple[dict[str, Any] | None, Revie
         return None, _candidate_result(candidate, "SKIPPED_UNSUPPORTED_TYPE", False, "不支援的 chapter candidate type")
     if status != "accepted":
         return None, _candidate_result(candidate, "SKIPPED_CHAPTER_STATUS", False, "chapter candidate status 不套用")
+    return candidate, None
+
+
+def _validate_paragraph_merge_candidate(item: Any) -> tuple[dict[str, Any] | None, ReviewApplyCandidateResult | None]:
+    if not isinstance(item, dict):
+        return None, ReviewApplyCandidateResult("", "", "SKIPPED_INVALID_CANDIDATE", None, False, "paragraph merge candidate 格式不合法")
+
+    candidate_id = item.get("candidate_id")
+    candidate_type = item.get("type")
+    status = item.get("status")
+    paragraph_index = item.get("paragraph_index")
+    next_paragraph_index = item.get("next_paragraph_index")
+    source_text = item.get("source_text")
+    next_source_text = item.get("next_source_text")
+    minimal = {
+        "candidate_id": candidate_id,
+        "status": status,
+        "paragraph_index": paragraph_index if isinstance(paragraph_index, int) else None,
+    }
+    if (
+        not isinstance(candidate_id, str)
+        or not candidate_id.strip()
+        or not isinstance(candidate_type, str)
+        or not isinstance(status, str)
+        or not isinstance(paragraph_index, int)
+        or not isinstance(next_paragraph_index, int)
+        or not isinstance(source_text, str)
+        or not isinstance(next_source_text, str)
+    ):
+        return None, _candidate_result(minimal, "SKIPPED_INVALID_CANDIDATE", False, "paragraph merge candidate 必要欄位不合法。")
+
+    candidate = {
+        "candidate_id": candidate_id,
+        "type": candidate_type,
+        "status": status,
+        "paragraph_index": paragraph_index,
+        "next_paragraph_index": next_paragraph_index,
+        "source_text": source_text,
+        "next_source_text": next_source_text,
+    }
+    if candidate_type != "paragraph_merge":
+        return None, _candidate_result(candidate, "SKIPPED_UNSUPPORTED_TYPE", False, "不支援的 paragraph merge candidate type。")
+    if status != "accepted":
+        return None, _candidate_result(candidate, "SKIPPED_PARAGRAPH_MERGE_STATUS", False, "paragraph merge candidate status 不套用。")
     return candidate, None
 
 
@@ -281,6 +401,23 @@ def _candidate_result(candidate: dict[str, Any], code: str, applied: bool, messa
 
 def _has_conflict(existing: list[tuple[int, int]], char_start: int, char_end: int) -> bool:
     return any(char_start < used_end and char_end > used_start for used_start, used_end in existing)
+
+
+def _is_skipped_result(result_code: str) -> bool:
+    return result_code.startswith("SKIPPED") or result_code in {
+        "PARAGRAPH_MERGE_CONFLICT",
+        "PARAGRAPH_MERGE_CHAPTER_BOUNDARY",
+    }
+
+
+def _is_heading_paragraph(paragraph) -> bool:
+    return getattr(paragraph.style, "name", "") == HEADING_STYLE_NAME
+
+
+def _delete_paragraph(paragraph) -> None:
+    element = paragraph._element
+    parent = element.getparent()
+    parent.remove(element)
 
 
 def _next_reviewed_output_path(output_dir: Path, stem: str) -> Path:

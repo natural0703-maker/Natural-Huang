@@ -21,11 +21,12 @@ Phase 1 mainline is frozen and verified.
 - Phase 2D-2 TOC status reporting.
 - Phase 2D-3 GUI TOC status summary.
 - Phase 2E-1 paragraph merge schema validation.
+- Phase 2E-2 paragraph merge apply.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 205 passed.
+- Full pytest passed: 217 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
@@ -35,7 +36,6 @@ Phase 1 mainline is frozen and verified.
 - complete chapter workflow.
 - GUI TOC controls.
 - advanced TOC behavior.
-- paragraph merge apply.
 - paragraph merge source mismatch verification against docx content.
 - paragraph merge result reporting.
 - GUI paragraph merge controls.
