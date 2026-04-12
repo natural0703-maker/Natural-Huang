@@ -1,0 +1,12 @@
+.venv/
+.pytest_cache/
+.pytest_tmp/
+tests/.pytest_tmp/
+tests/.test_work/
+__pycache__/
+.tmp/
+*.pyc
+tmp_codex_write_test.txt
+tmp_patch_test.txt
+Bak/
+/batch_input/

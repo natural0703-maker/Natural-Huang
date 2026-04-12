@@ -1,0 +1,42 @@
+opencc_config: s2t
+default_report_name: report.xlsx
+enable_space_cleanup: true
+
+active_profile: default
+
+profiles:
+  default:
+    description: 預設方案（一般小說）
+    low_risk_dict: 低風險詞庫.yaml
+    high_risk_rules: 高風險規則.yaml
+    format_config:
+      page_margin_top_cm: 1.27
+      page_margin_bottom_cm: 1.27
+      page_margin_left_cm: 1.27
+      page_margin_right_cm: 1.27
+      body_font_name: 新細明體
+      body_font_size_pt: 12
+      body_space_before_pt: 0
+      body_space_after_pt: 6
+      body_line_spacing_mode: at_least
+      body_min_line_height_pt: 12
+      body_first_line_indent_chars: 2
+      heading_style_name: Heading 2
+
+  strict_tw:
+    description: 嚴格方案（示範，可再替換成你自己的規則檔）
+    low_risk_dict: 低風險詞庫_嚴格.yaml
+    high_risk_rules: 高風險規則_嚴格.yaml
+    format_config:
+      page_margin_top_cm: 1.27
+      page_margin_bottom_cm: 1.27
+      page_margin_left_cm: 1.27
+      page_margin_right_cm: 1.27
+      body_font_name: 新細明體
+      body_font_size_pt: 12
+      body_space_before_pt: 0
+      body_space_after_pt: 6
+      body_line_spacing_mode: at_least
+      body_min_line_height_pt: 12
+      body_first_line_indent_chars: 2
+      heading_style_name: Heading 2

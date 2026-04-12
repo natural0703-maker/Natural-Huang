@@ -1,0 +1,25 @@
+from __future__ import annotations
+
+OPENCC_DEFAULT = "s2t"
+HEADING_STYLE_NAME = "Heading 2"
+FONT_NAME = "\u65b0\u7d30\u660e\u9ad4"
+HEADING_FONT_SIZE_PT = 16.0
+BODY_FONT_SIZE_PT = 12.0
+BODY_FIRST_LINE_INDENT_PT = 24.0
+PAGE_MARGIN_CM = 1.27
+
+STATUS_PENDING = "pending"
+STATUS_ACCEPTED = "accepted"
+STATUS_REJECTED = "rejected"
+STATUS_SKIP = "skip"
+STATUS_AUTO_ACCEPTED = "auto_accepted"
+
+STATUS_VALUES = frozenset(
+    {
+        STATUS_PENDING,
+        STATUS_ACCEPTED,
+        STATUS_REJECTED,
+        STATUS_SKIP,
+        STATUS_AUTO_ACCEPTED,
+    }
+)
