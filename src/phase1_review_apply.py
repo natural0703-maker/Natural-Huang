@@ -7,6 +7,7 @@ from typing import Any
 
 from docx import Document
 
+from src.frozen_spec_v1 import HEADING_STYLE_NAME
 from src.review_schema import ErrorRecord, ReviewSchema, validate_reviewed_json_payload
 
 
@@ -55,6 +56,7 @@ def apply_review_docx(
     review_json_errors = validate_reviewed_json_payload(raw)
     if review_json_errors:
         return _flow_error_record(review_json_errors[0])
+    raw_chapter_candidates = raw.get("chapter_candidates", [])
     raw_candidates = raw.get("review_candidates", [])
 
     try:
@@ -110,6 +112,8 @@ def apply_review_docx(
         occupied_ranges.setdefault(paragraph_index, []).append((char_start, char_end))
         candidate_results.append(_candidate_result(candidate, "APPLIED", True, "已套用。"))
 
+    _apply_chapter_candidates(document, raw_chapter_candidates, candidate_results)
+
     try:
         document.save(output_path)
     except Exception as exc:
@@ -127,6 +131,80 @@ def apply_review_docx(
         skipped_count=skipped_count,
         failed_count=failed_count,
     )
+
+
+def _apply_chapter_candidates(
+    document,
+    raw_chapter_candidates: list[Any],
+    candidate_results: list[ReviewApplyCandidateResult],
+) -> None:
+    paragraphs = document.paragraphs
+    applied_paragraph_indices: set[int] = set()
+    for item in raw_chapter_candidates:
+        candidate, result = _validate_chapter_candidate(item)
+        if result is not None:
+            candidate_results.append(result)
+            continue
+        assert candidate is not None
+
+        paragraph_index = candidate["paragraph_index"]
+        if paragraph_index in applied_paragraph_indices:
+            candidate_results.append(
+                _candidate_result(candidate, "SKIPPED_CHAPTER_CONFLICT", False, "同一段落已有章節候選套用")
+            )
+            continue
+        if paragraph_index < 0 or paragraph_index >= len(paragraphs):
+            candidate_results.append(
+                _candidate_result(candidate, "CHAPTER_PARAGRAPH_INDEX_INVALID", False, "章節候選段落索引不存在")
+            )
+            continue
+
+        paragraph = paragraphs[paragraph_index]
+        if not paragraph.text.strip():
+            candidate_results.append(
+                _candidate_result(candidate, "CHAPTER_PARAGRAPH_EMPTY", False, "章節候選目標段落為空白")
+            )
+            continue
+
+        try:
+            paragraph.style = HEADING_STYLE_NAME
+        except Exception as exc:
+            candidate_results.append(
+                _candidate_result(candidate, "CHAPTER_STYLE_APPLY_FAILED", False, f"章節樣式套用失敗：{exc}")
+            )
+            continue
+
+        applied_paragraph_indices.add(paragraph_index)
+        candidate_results.append(
+            _candidate_result(candidate, "APPLIED_CHAPTER_HEADING", True, "章節候選已套用 Heading 2")
+        )
+
+
+def _validate_chapter_candidate(item: Any) -> tuple[dict[str, Any] | None, ReviewApplyCandidateResult | None]:
+    if not isinstance(item, dict):
+        return None, ReviewApplyCandidateResult("", "", "SKIPPED_INVALID_CANDIDATE", None, False, "chapter candidate 格式不合法")
+    candidate_id = item.get("candidate_id")
+    candidate_type = item.get("type")
+    status = item.get("status")
+    paragraph_index = item.get("paragraph_index")
+    minimal = {
+        "candidate_id": candidate_id,
+        "status": status,
+        "paragraph_index": paragraph_index if isinstance(paragraph_index, int) else None,
+    }
+    if not isinstance(candidate_id, str) or not candidate_id.strip() or not isinstance(status, str) or not isinstance(paragraph_index, int):
+        return None, _candidate_result(minimal, "SKIPPED_INVALID_CANDIDATE", False, "chapter candidate 必要欄位不合法")
+    candidate = {
+        "candidate_id": candidate_id,
+        "type": candidate_type,
+        "status": status,
+        "paragraph_index": paragraph_index,
+    }
+    if candidate_type != "chapter":
+        return None, _candidate_result(candidate, "SKIPPED_UNSUPPORTED_TYPE", False, "不支援的 chapter candidate type")
+    if status != "accepted":
+        return None, _candidate_result(candidate, "SKIPPED_CHAPTER_STATUS", False, "chapter candidate status 不套用")
+    return candidate, None
 
 
 def _validate_candidate(item: Any) -> tuple[dict[str, Any] | None, ReviewApplyCandidateResult | None]:

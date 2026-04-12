@@ -15,18 +15,19 @@ Phase 1 mainline is frozen and verified.
 - GUI Phase 1 worker first-pass integration.
 - GUI main window first-pass minimal integration.
 - Phase 2A review schema / reviewed JSON validation hardening.
+- Phase 2B chapter candidate apply foundation.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 157 passed.
+- Full pytest passed: 167 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
 ## Not Included
 
 - full GUI integration.
-- chapter candidate apply.
+- complete chapter workflow.
 - TOC.
 - paragraph merge apply.
 - run-level formatting fidelity.

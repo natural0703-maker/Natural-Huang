@@ -135,15 +135,68 @@ def validate_reviewed_json_payload(payload: Any) -> list[ErrorRecord]:
     if not isinstance(payload, dict):
         return [_review_json_error("REVIEW_JSON_ROOT_INVALID", "reviewed JSON 根節點必須是物件。", "")]
 
+    raw_chapter_candidates = payload.get("chapter_candidates", [])
+    if not isinstance(raw_chapter_candidates, list):
+        return [_review_json_error("CHAPTER_CANDIDATES_INVALID", "chapter_candidates 必須是清單", "")]
+
     raw_candidates = payload.get("review_candidates", [])
     if not isinstance(raw_candidates, list):
         return [_review_json_error("REVIEW_CANDIDATES_INVALID", "review_candidates 必須是陣列。", "")]
+
+    for index, candidate in enumerate(raw_chapter_candidates):
+        error = _validate_chapter_candidate_payload(candidate, index)
+        if error is not None:
+            return [error]
 
     for index, candidate in enumerate(raw_candidates):
         error = _validate_review_candidate_payload(candidate, index)
         if error is not None:
             return [error]
     return []
+
+
+def _validate_chapter_candidate_payload(candidate: Any, index: int) -> ErrorRecord | None:
+    detail_prefix = f"chapter_candidates[{index}]"
+    if not isinstance(candidate, dict):
+        return _review_json_error(
+            "CHAPTER_CANDIDATE_INVALID",
+            "chapter candidate 必須是物件",
+            f"{detail_prefix} must be an object",
+        )
+
+    candidate_id = candidate.get("candidate_id")
+    if not isinstance(candidate_id, str) or not candidate_id.strip():
+        return _review_json_error(
+            "CHAPTER_CANDIDATE_ID_INVALID",
+            "chapter candidate 必須有非空白 candidate_id",
+            f"{detail_prefix}.candidate_id must be a non-empty string",
+        )
+
+    candidate_type = candidate.get("type")
+    if not isinstance(candidate_type, str):
+        return _review_json_error(
+            "CHAPTER_CANDIDATE_TYPE_INVALID",
+            "chapter candidate type 必須是字串",
+            f"{detail_prefix}.type must be a string",
+        )
+
+    status = candidate.get("status")
+    if not isinstance(status, str) or status not in STATUS_VALUES:
+        return _review_json_error(
+            "CHAPTER_CANDIDATE_STATUS_INVALID",
+            "chapter candidate status 不合法",
+            f"{detail_prefix}.status must be a supported status enum",
+        )
+
+    paragraph_index = candidate.get("paragraph_index")
+    if type(paragraph_index) is not int or paragraph_index < 0:
+        return _review_json_error(
+            "CHAPTER_CANDIDATE_PARAGRAPH_INDEX_INVALID",
+            "chapter candidate paragraph_index 必須是非負整數",
+            f"{detail_prefix}.paragraph_index must be a non-negative integer",
+        )
+
+    return None
 
 
 def _validate_review_candidate_payload(candidate: Any, index: int) -> ErrorRecord | None:
