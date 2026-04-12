@@ -9,6 +9,8 @@ from src.frozen_spec_v1 import STATUS_AUTO_ACCEPTED, STATUS_VALUES
 
 Status = Literal["pending", "accepted", "rejected", "skip", "auto_accepted"]
 SUPPORTED_REVIEW_CANDIDATE_TYPES = {"high_risk_term"}
+SUPPORTED_PARAGRAPH_MERGE_CANDIDATE_TYPE = "paragraph_merge"
+SUPPORTED_PARAGRAPH_MERGE_STATUSES = {"pending", "accepted", "rejected", "skip"}
 
 
 def _hash12(parts: list[object]) -> str:
@@ -70,6 +72,7 @@ class ParagraphMergeCandidate:
     next_paragraph_index: int = -1
     source_text: str = ""
     next_text: str = ""
+    next_source_text: str = ""
     auto_apply: bool = False
     reason: str = ""
 
@@ -143,6 +146,16 @@ def validate_reviewed_json_payload(payload: Any) -> list[ErrorRecord]:
     if not isinstance(raw_candidates, list):
         return [_review_json_error("REVIEW_CANDIDATES_INVALID", "review_candidates 必須是陣列。", "")]
 
+    raw_paragraph_merge_candidates = payload.get("paragraph_merge_candidates", [])
+    if not isinstance(raw_paragraph_merge_candidates, list):
+        return [
+            _review_json_error(
+                "PARAGRAPH_MERGE_CANDIDATES_INVALID",
+                "paragraph_merge_candidates 必須是 list。",
+                "paragraph_merge_candidates must be a list",
+            )
+        ]
+
     for index, candidate in enumerate(raw_chapter_candidates):
         error = _validate_chapter_candidate_payload(candidate, index)
         if error is not None:
@@ -150,6 +163,11 @@ def validate_reviewed_json_payload(payload: Any) -> list[ErrorRecord]:
 
     for index, candidate in enumerate(raw_candidates):
         error = _validate_review_candidate_payload(candidate, index)
+        if error is not None:
+            return [error]
+
+    for index, candidate in enumerate(raw_paragraph_merge_candidates):
+        error = _validate_paragraph_merge_candidate_payload(candidate, index)
         if error is not None:
             return [error]
     return []
@@ -276,6 +294,95 @@ def _validate_review_candidate_payload(candidate: Any, index: int) -> ErrorRecor
             "REVIEW_CANDIDATE_CONTEXT_INVALID",
             "review candidate 的 context_before / context_after 必須是字串。",
             f"{detail_prefix}.context_after 必須是字串。",
+        )
+
+    return None
+
+
+def _validate_paragraph_merge_candidate_payload(candidate: Any, index: int) -> ErrorRecord | None:
+    detail_prefix = f"paragraph_merge_candidates[{index}]"
+    if not isinstance(candidate, dict):
+        return _review_json_error(
+            "PARAGRAPH_MERGE_CANDIDATE_INVALID",
+            "paragraph merge candidate 必須是 object。",
+            f"{detail_prefix} must be an object",
+        )
+
+    candidate_id = candidate.get("candidate_id")
+    if not isinstance(candidate_id, str) or not candidate_id.strip():
+        return _review_json_error(
+            "PARAGRAPH_MERGE_CANDIDATE_ID_INVALID",
+            "paragraph merge candidate 必須提供非空白 candidate_id。",
+            f"{detail_prefix}.candidate_id must be a non-empty string",
+        )
+
+    candidate_type = candidate.get("type")
+    if not isinstance(candidate_type, str):
+        return _review_json_error(
+            "PARAGRAPH_MERGE_CANDIDATE_TYPE_INVALID",
+            "paragraph merge candidate type 必須是字串。",
+            f"{detail_prefix}.type must be a string",
+        )
+    if candidate_type != SUPPORTED_PARAGRAPH_MERGE_CANDIDATE_TYPE:
+        return _review_json_error(
+            "PARAGRAPH_MERGE_CANDIDATE_TYPE_UNSUPPORTED",
+            "paragraph merge candidate type 必須是 paragraph_merge。",
+            f"{detail_prefix}.type must be paragraph_merge",
+        )
+
+    status = candidate.get("status")
+    if not isinstance(status, str) or status not in SUPPORTED_PARAGRAPH_MERGE_STATUSES:
+        return _review_json_error(
+            "PARAGRAPH_MERGE_CANDIDATE_STATUS_INVALID",
+            "paragraph merge candidate status 必須是 pending、accepted、rejected 或 skip，且不允許 auto_accepted。",
+            f"{detail_prefix}.status must be pending, accepted, rejected, or skip; auto_accepted is not allowed",
+        )
+
+    paragraph_index = candidate.get("paragraph_index")
+    if type(paragraph_index) is not int or paragraph_index < 0:
+        return _review_json_error(
+            "PARAGRAPH_MERGE_PARAGRAPH_INDEX_INVALID",
+            "paragraph merge candidate paragraph_index 必須是非負整數。",
+            f"{detail_prefix}.paragraph_index must be a non-negative integer",
+        )
+
+    next_paragraph_index = candidate.get("next_paragraph_index")
+    if type(next_paragraph_index) is not int or next_paragraph_index < 0:
+        return _review_json_error(
+            "PARAGRAPH_MERGE_NEXT_PARAGRAPH_INDEX_INVALID",
+            "paragraph merge candidate next_paragraph_index 必須是非負整數。",
+            f"{detail_prefix}.next_paragraph_index must be a non-negative integer",
+        )
+
+    if next_paragraph_index != paragraph_index + 1:
+        return _review_json_error(
+            "PARAGRAPH_MERGE_NOT_ADJACENT",
+            "paragraph merge candidate 只能指向相鄰下一段。",
+            f"{detail_prefix}.next_paragraph_index must equal paragraph_index + 1",
+        )
+
+    source_text = candidate.get("source_text")
+    if not isinstance(source_text, str) or not source_text.strip():
+        return _review_json_error(
+            "PARAGRAPH_MERGE_SOURCE_TEXT_INVALID",
+            "paragraph merge candidate 必須提供非空白 source_text。",
+            f"{detail_prefix}.source_text must be a non-empty string",
+        )
+
+    next_source_text = candidate.get("next_source_text")
+    if not isinstance(next_source_text, str) or not next_source_text.strip():
+        return _review_json_error(
+            "PARAGRAPH_MERGE_NEXT_SOURCE_TEXT_INVALID",
+            "paragraph merge candidate 必須提供非空白 next_source_text。",
+            f"{detail_prefix}.next_source_text must be a non-empty string",
+        )
+
+    reason = candidate.get("reason")
+    if reason is not None and not isinstance(reason, str):
+        return _review_json_error(
+            "PARAGRAPH_MERGE_REASON_INVALID",
+            "paragraph merge candidate reason 必須是字串。",
+            f"{detail_prefix}.reason must be a string when present",
         )
 
     return None
