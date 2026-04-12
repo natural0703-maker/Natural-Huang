@@ -19,16 +19,16 @@ GUI 主視窗第一版已完成最小接線，可最小操作 Phase 1 的 analyz
 目前仍未支援：
 
 - report path 欄位。
-- TOC。
+- TOC GUI 操作。
 - chapter candidate / paragraph merge 套用的 GUI 操作。
 - reviewed JSON 編輯器。
 - batch / recursive。
 - Excel report。
 - 多頁籤或完整 GUI 重構。
 
-### 1.4 TOC 尚未實作
+### 1.4 進階 TOC 行為尚未實作
 
-Phase 1 目前尚未寫入 Word TOC field，也尚未建立前置可跳轉章節清單。
+Phase 2C 已完成 convert 流程的 TOC 最小方案，但尚未支援 apply_review 流程的 TOC，也尚未支援既有 TOC 更新 / 合併、多層目錄、頁碼更新等更完整的 TOC 行為。
 
 ### 1.5 paragraph merge 套用尚未實作
 
@@ -92,8 +92,12 @@ reviewed JSON 驗證已集中到可重用 helper，並支援 root object、`revi
 
 Phase 2B 已完成最小 chapter candidate 套用基礎：在既有 `apply_review` 流程中，`status == "accepted"` 且 `type == "chapter"` 的候選可將目標段落樣式套用為 `Heading 2`。此能力不修改段落文字、不修改段落順序、不建立 TOC，也不處理 paragraph merge 套用。
 
+### 3.7 Phase 2C convert 流程 TOC 最小方案已完成
+
+Phase 2C 已完成 convert 流程的 TOC 最小方案：依據既有 `Heading 2` 插入最小 Word TOC field；若 field 插入失敗，fallback 為前置章節清單。此能力不延伸 `apply_review()`，不處理 paragraph merge 套用，也不處理 run-level 格式保真。
+
 ## 4. 驗證狀態
 
-- 完整 pytest：`167 passed`
+- 完整 pytest：`174 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過

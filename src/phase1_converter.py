@@ -8,6 +8,7 @@ from docx import Document
 from src.converter import OpenCCConverter
 from src.phase1_analyzer import analyze_docx
 from src.phase1_config import Phase1ConfigCheck
+from src.phase2_toc_builder import TOC_STATUS_FAILED, insert_minimal_toc
 from src.replacer import apply_replacements, filter_out_high_risk_terms, normalize_terms_with_converter
 from src.review_schema import ErrorRecord, ReviewSchema
 from src.rule_loader import build_high_risk_term_list, build_low_risk_mapping, load_high_risk_rules, load_low_risk_rules
@@ -20,7 +21,12 @@ class ConvertDocxResult:
     converted: bool
 
 
-def convert_docx(input_path: Path | None, output_dir: Path | None, config_check: Phase1ConfigCheck) -> ConvertDocxResult:
+def convert_docx(
+    input_path: Path | None,
+    output_dir: Path | None,
+    config_check: Phase1ConfigCheck,
+    create_toc: bool = True,
+) -> ConvertDocxResult:
     if input_path is None:
         # Phase 1C intentionally keeps missing input path and missing file under INPUT_NOT_FOUND
         # to avoid expanding the public error-code contract in this narrowing pass.
@@ -61,6 +67,10 @@ def convert_docx(input_path: Path | None, output_dir: Path | None, config_check:
             )
         paragraph.text = converted_text
 
+    toc = insert_minimal_toc(document, requested=create_toc)
+    if toc.status == TOC_STATUS_FAILED:
+        return _error_result("TOC_INSERT_FAILED", "無法建立目錄，也無法建立 fallback 章節清單。", "")
+
     output_path = _next_output_path(output_dir, input_path.stem)
     try:
         document.save(output_path)
@@ -74,6 +84,7 @@ def convert_docx(input_path: Path | None, output_dir: Path | None, config_check:
             chapter_candidates=schema.chapter_candidates,
             review_candidates=schema.review_candidates,
             paragraph_merge_candidates=[],
+            toc=toc,
             errors=[],
         ),
         output_path=output_path,

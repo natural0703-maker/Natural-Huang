@@ -68,7 +68,7 @@ def analyze(options: Phase1Options) -> Phase1StubResult:
 
 def convert(options: Phase1Options) -> Phase1StubResult:
     config_check = load_phase1_config(options.config_path, options.profile)
-    result = convert_docx(options.input_path, options.output_dir, config_check)
+    result = convert_docx(options.input_path, options.output_dir, config_check, create_toc=options.create_toc)
     message = (
         "Phase 1C convert：已輸出 converted DOCX。"
         if result.converted

@@ -16,11 +16,12 @@ Phase 1 mainline is frozen and verified.
 - GUI main window first-pass minimal integration.
 - Phase 2A review schema / reviewed JSON validation hardening.
 - Phase 2B chapter candidate apply foundation.
+- Phase 2C minimal TOC support for convert flow.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 167 passed.
+- Full pytest passed: 174 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
@@ -28,7 +29,8 @@ Phase 1 mainline is frozen and verified.
 
 - full GUI integration.
 - complete chapter workflow.
-- TOC.
+- apply_review TOC support.
+- advanced TOC behavior.
 - paragraph merge apply.
 - run-level formatting fidelity.
 - full legacy entry replacement.
