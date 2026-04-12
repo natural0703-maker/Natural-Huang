@@ -19,11 +19,12 @@ Phase 1 mainline is frozen and verified.
 - Phase 2C minimal TOC support for convert flow.
 - Phase 2D-1 TOC support for apply_review flow.
 - Phase 2D-2 TOC status reporting.
+- Phase 2D-3 GUI TOC status summary.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 188 passed.
+- Full pytest passed: 192 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
@@ -31,7 +32,7 @@ Phase 1 mainline is frozen and verified.
 
 - full GUI integration.
 - complete chapter workflow.
-- GUI TOC status display.
+- GUI TOC controls.
 - advanced TOC behavior.
 - paragraph merge apply.
 - run-level formatting fidelity.

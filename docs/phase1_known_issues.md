@@ -19,7 +19,7 @@ GUI 主視窗第一版已完成最小接線，可最小操作 Phase 1 的 analyz
 目前仍未支援：
 
 - report path 欄位。
-- TOC GUI 狀態顯示 / 操作。
+- TOC GUI 操作。
 - chapter candidate / paragraph merge 套用的 GUI 操作。
 - reviewed JSON 編輯器。
 - batch / recursive。
@@ -28,7 +28,7 @@ GUI 主視窗第一版已完成最小接線，可最小操作 Phase 1 的 analyz
 
 ### 1.4 進階 TOC 行為尚未實作
 
-Phase 2C 已完成 convert 流程的 TOC 最小方案，Phase 2D-1 已完成 apply_review 流程的 TOC 支援，Phase 2D-2 已完成 report TOC 狀態摘要；但尚未支援 GUI 顯示 TOC 狀態、既有 TOC 更新 / 合併、多層目錄、頁碼更新等更完整的 TOC 行為。
+Phase 2C 已完成 convert 流程的 TOC 最小方案，Phase 2D-1 已完成 apply_review 流程的 TOC 支援，Phase 2D-2 已完成 report TOC 狀態摘要，Phase 2D-3 已完成 GUI TOC 狀態摘要顯示；但尚未支援 TOC GUI 操作、既有 TOC 更新 / 合併、多層目錄、頁碼更新等更完整的 TOC 行為。
 
 ### 1.5 paragraph merge 套用尚未實作
 
@@ -104,8 +104,12 @@ Phase 2D-1 已完成 apply_review 流程的 TOC 支援：review candidates 與 c
 
 Phase 2D-2 已完成 report TOC 狀態摘要：JSON report top-level 固定輸出 `toc`，TXT report 補上最小 TOC 摘要。`success` 契約未改，仍只由 `len(schema.errors) == 0` 決定。
 
+### 3.10 Phase 2D-3 GUI TOC 狀態摘要顯示已完成
+
+Phase 2D-3 已完成 GUI TOC 狀態摘要顯示：GUI 結果摘要區固定顯示 `TOC 狀態`、`TOC fallback`、`TOC 章節數`，並涵蓋 analyze / convert / apply_review。此能力不新增 TOC 控制項、不新增 report path 欄位、不新增 reviewed JSON 編輯器，也不修改核心 TOC 行為。
+
 ## 4. 驗證狀態
 
-- 完整 pytest：`188 passed`
+- 完整 pytest：`192 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過

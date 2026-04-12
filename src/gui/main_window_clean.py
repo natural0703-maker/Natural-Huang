@@ -493,6 +493,10 @@ class MainWindow(QMainWindow):
         output_path = getattr(result, "output_path", None)
         error_count = len(errors)
         warning_count = len(config_warnings)
+        toc = getattr(schema, "toc", None)
+        toc_status = str(getattr(toc, "status", "not_requested"))
+        toc_fallback = "是" if bool(getattr(toc, "fallback_used", False)) else "否"
+        toc_chapter_count = int(getattr(toc, "chapter_count", 0) or 0)
 
         if operation == "analyze":
             summary = (
@@ -519,6 +523,10 @@ class MainWindow(QMainWindow):
         else:
             summary = f"Phase 1 | 操作={operation} | 錯誤數={error_count} | 設定警告數={warning_count}"
 
+        summary = (
+            f"{summary} | TOC 狀態：{toc_status} | TOC fallback：{toc_fallback} | "
+            f"TOC 章節數：{toc_chapter_count}"
+        )
         self.phase1_result_label.setText(summary)
         if errors:
             first = errors[0]

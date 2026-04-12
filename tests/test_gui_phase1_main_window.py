@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 import src.gui.main_window_clean as main_window_clean
 from src.gui.main_window_clean import MainWindow
-from src.review_schema import ErrorRecord, ReviewSchema
+from src.review_schema import ErrorRecord, ReviewSchema, TocState
 
 
 @pytest.fixture
@@ -171,6 +171,81 @@ def test_phase1_main_window_convert_summary(monkeypatch, window) -> None:
     assert "輸出檔案=converted.docx" in window.phase1_result_label.text()
     assert "高風險候選數=3" in window.phase1_result_label.text()
     assert "錯誤數=0" in window.phase1_result_label.text()
+
+
+def test_phase1_main_window_analyze_shows_default_toc_status(monkeypatch, window) -> None:
+    expected = SimpleNamespace(
+        operation="analyze",
+        schema=ReviewSchema(toc=TocState()),
+        config_check=SimpleNamespace(warnings=[]),
+        output_path=None,
+        apply_result=None,
+    )
+    monkeypatch.setattr(main_window_clean.phase1_worker, "run_phase1_gui_request", lambda request: expected)
+
+    _set_phase1_operation(window, "analyze")
+    window.phase1_input_edit.setText("novel.docx")
+
+    window._run_phase1()
+
+    text = window.phase1_result_label.text()
+    assert "TOC 狀態：not_requested" in text
+    assert "TOC fallback：否" in text
+    assert "TOC 章節數：0" in text
+
+
+def test_phase1_main_window_convert_shows_toc_status(monkeypatch, window) -> None:
+    expected = SimpleNamespace(
+        operation="convert",
+        schema=ReviewSchema(toc=TocState(requested=True, status="field_inserted", chapter_count=2)),
+        config_check=SimpleNamespace(warnings=[]),
+        output_path=Path("converted.docx"),
+        apply_result=None,
+    )
+    monkeypatch.setattr(main_window_clean.phase1_worker, "run_phase1_gui_request", lambda request: expected)
+
+    _set_phase1_operation(window, "convert")
+    window.phase1_input_edit.setText("novel.docx")
+    window.phase1_output_dir_edit.setText("out")
+
+    window._run_phase1()
+
+    text = window.phase1_result_label.text()
+    assert "TOC 狀態：field_inserted" in text
+    assert "TOC fallback：否" in text
+    assert "TOC 章節數：2" in text
+
+
+def test_phase1_main_window_apply_review_shows_toc_fallback_status(monkeypatch, window) -> None:
+    apply_result = SimpleNamespace(applied_count=1, skipped_count=0, failed_count=0)
+    expected = SimpleNamespace(
+        operation="apply_review",
+        schema=ReviewSchema(
+            toc=TocState(requested=True, status="fallback_chapter_list", fallback_used=True, chapter_count=3)
+        ),
+        config_check=SimpleNamespace(warnings=[]),
+        output_path=Path("reviewed.docx"),
+        apply_result=apply_result,
+    )
+    monkeypatch.setattr(main_window_clean.phase1_worker, "run_phase1_gui_request", lambda request: expected)
+
+    _set_phase1_operation(window, "apply_review")
+    window.phase1_input_edit.setText("converted.docx")
+    window.phase1_apply_review_edit.setText("reviewed.json")
+    window.phase1_output_dir_edit.setText("out")
+
+    window._run_phase1()
+
+    text = window.phase1_result_label.text()
+    assert "TOC 狀態：fallback_chapter_list" in text
+    assert "TOC fallback：是" in text
+    assert "TOC 章節數：3" in text
+
+
+def test_phase1_main_window_does_not_add_toc_controls(window) -> None:
+    assert not hasattr(window, "phase1_create_toc_var")
+    assert not hasattr(window, "phase1_create_toc_checkbox")
+    assert not hasattr(window, "phase1_create_toc_button")
 
 
 def test_phase1_main_window_shows_first_schema_error(monkeypatch, window) -> None:
