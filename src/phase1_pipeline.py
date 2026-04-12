@@ -91,6 +91,7 @@ def apply_review(options: Phase1Options) -> Phase1StubResult:
         options.apply_review_path,
         options.output_dir,
         options.reviewed_output_path,
+        create_toc=options.create_toc,
     )
     message = (
         "Phase 1D apply_review：已輸出 reviewed DOCX。"

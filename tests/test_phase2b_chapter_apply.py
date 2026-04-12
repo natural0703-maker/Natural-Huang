@@ -61,7 +61,9 @@ def _apply_payload(name: str, paragraphs: list[str], payload: dict, heading2_ind
     _make_docx(input_path, paragraphs, heading2_indices=heading2_indices)
     _write_payload(review_path, payload)
 
-    return apply_review(Phase1Options(input_path=input_path, output_dir=output_dir, apply_review_path=review_path))
+    return apply_review(
+        Phase1Options(input_path=input_path, output_dir=output_dir, apply_review_path=review_path, create_toc=False)
+    )
 
 
 def _result_codes(result) -> list[str]:

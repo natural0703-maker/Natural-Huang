@@ -8,6 +8,7 @@ from typing import Any
 from docx import Document
 
 from src.frozen_spec_v1 import HEADING_STYLE_NAME
+from src.phase2_toc_builder import TOC_STATUS_FAILED, insert_minimal_toc
 from src.review_schema import ErrorRecord, ReviewSchema, validate_reviewed_json_payload
 
 
@@ -37,6 +38,7 @@ def apply_review_docx(
     review_json_path: Path | None,
     output_dir: Path | None,
     reviewed_output_path: Path | None = None,
+    create_toc: bool = True,
 ) -> ReviewApplyResult:
     if input_path is None or not input_path.exists():
         return _flow_error("INPUT_NOT_FOUND", "找不到輸入 DOCX。", str(input_path or ""))
@@ -113,17 +115,22 @@ def apply_review_docx(
         candidate_results.append(_candidate_result(candidate, "APPLIED", True, "已套用。"))
 
     _apply_chapter_candidates(document, raw_chapter_candidates, candidate_results)
+    toc = insert_minimal_toc(document, requested=create_toc)
+    if toc.status == TOC_STATUS_FAILED:
+        return _flow_error("TOC_INSERT_FAILED", "無法建立目錄，也無法建立 fallback 章節清單。", "")
 
     try:
         document.save(output_path)
     except Exception as exc:
+        if create_toc:
+            return _flow_error("TOC_INSERT_FAILED", f"無法寫入含目錄的 reviewed DOCX：{output_path}", str(exc))
         return _flow_error("DOCX_WRITE_FAILED", f"無法寫入 reviewed DOCX：{output_path}", str(exc))
 
     applied_count = sum(1 for item in candidate_results if item.applied)
     skipped_count = sum(1 for item in candidate_results if not item.applied and item.result_code.startswith("SKIPPED"))
     failed_count = sum(1 for item in candidate_results if not item.applied and not item.result_code.startswith("SKIPPED"))
     return ReviewApplyResult(
-        schema=ReviewSchema(),
+        schema=ReviewSchema(toc=toc),
         output_path=output_path,
         applied=applied_count > 0,
         candidate_results=candidate_results,

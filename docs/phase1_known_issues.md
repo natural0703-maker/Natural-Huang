@@ -28,7 +28,7 @@ GUI 主視窗第一版已完成最小接線，可最小操作 Phase 1 的 analyz
 
 ### 1.4 進階 TOC 行為尚未實作
 
-Phase 2C 已完成 convert 流程的 TOC 最小方案，但尚未支援 apply_review 流程的 TOC，也尚未支援既有 TOC 更新 / 合併、多層目錄、頁碼更新等更完整的 TOC 行為。
+Phase 2C 已完成 convert 流程的 TOC 最小方案，Phase 2D-1 已完成 apply_review 流程的 TOC 支援；但尚未支援 report TOC 狀態摘要、既有 TOC 更新 / 合併、多層目錄、頁碼更新等更完整的 TOC 行為。
 
 ### 1.5 paragraph merge 套用尚未實作
 
@@ -94,10 +94,14 @@ Phase 2B 已完成最小 chapter candidate 套用基礎：在既有 `apply_revie
 
 ### 3.7 Phase 2C convert 流程 TOC 最小方案已完成
 
-Phase 2C 已完成 convert 流程的 TOC 最小方案：依據既有 `Heading 2` 插入最小 Word TOC field；若 field 插入失敗，fallback 為前置章節清單。此能力不延伸 `apply_review()`，不處理 paragraph merge 套用，也不處理 run-level 格式保真。
+Phase 2C 已完成 convert 流程的 TOC 最小方案：依據既有 `Heading 2` 插入最小 Word TOC field；若 field 插入失敗，fallback 為前置章節清單。Phase 2D-1 另已將同一套 TOC builder 延伸到 `apply_review()` 流程；目前仍不處理 paragraph merge 套用，也不處理 run-level 格式保真。
+
+### 3.8 Phase 2D-1 apply_review 流程 TOC 支援已完成
+
+Phase 2D-1 已完成 apply_review 流程的 TOC 支援：review candidates 與 chapter candidates 套用後，沿用既有 TOC builder 插入 TOC，再儲存 reviewed 文件。field 插入失敗但 fallback 成功仍視為流程成功；只有 TOC field 與 fallback 都失敗時才回 `TOC_INSERT_FAILED`。此能力未新增 CLI / GUI 參數，也未修改 reviewed JSON schema。
 
 ## 4. 驗證狀態
 
-- 完整 pytest：`174 passed`
+- 完整 pytest：`180 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過
