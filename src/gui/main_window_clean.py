@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.config_loader import load_config
+from src.gui import phase1_worker
 from src.gui.worker import GuiRunRequest, ProcessingWorker
 
 
@@ -70,10 +71,12 @@ class MainWindow(QMainWindow):
         self._active_profile_name: str = "default"
         self._available_profile_names: list[str] = ["default"]
         self._profile_details: dict[str, dict[str, str]] = {}
+        self._last_phase1_result = None
 
         self._build_ui()
         self._bind_events()
         self._apply_mode_state()
+        self._apply_phase1_mode_state()
         self._update_open_buttons()
         self._refresh_profiles_from_config()
 
@@ -185,6 +188,71 @@ class MainWindow(QMainWindow):
         layout.addLayout(form)
         layout.addWidget(format_box)
 
+        phase1_box = QGroupBox("Phase 1 最小操作")
+        phase1_grid = QGridLayout(phase1_box)
+        row = 0
+
+        self.phase1_operation_combo = QComboBox()
+        self.phase1_operation_combo.addItem("Analyze", "analyze")
+        self.phase1_operation_combo.addItem("Convert", "convert")
+        self.phase1_operation_combo.addItem("Apply Review", "apply_review")
+        phase1_grid.addWidget(QLabel("模式"), row, 0)
+        phase1_grid.addWidget(self.phase1_operation_combo, row, 1, 1, 2)
+        row += 1
+
+        self.phase1_input_edit = QLineEdit()
+        self.phase1_input_button = QPushButton("選擇檔案")
+        phase1_grid.addWidget(QLabel("輸入檔案"), row, 0)
+        phase1_grid.addWidget(self.phase1_input_edit, row, 1)
+        phase1_grid.addWidget(self.phase1_input_button, row, 2)
+        row += 1
+
+        self.phase1_output_dir_edit = QLineEdit()
+        self.phase1_output_dir_button = QPushButton("選擇資料夾")
+        phase1_grid.addWidget(QLabel("輸出資料夾"), row, 0)
+        phase1_grid.addWidget(self.phase1_output_dir_edit, row, 1)
+        phase1_grid.addWidget(self.phase1_output_dir_button, row, 2)
+        row += 1
+
+        self.phase1_config_edit = QLineEdit()
+        self.phase1_config_button = QPushButton("選擇設定檔")
+        phase1_grid.addWidget(QLabel("設定檔（可選）"), row, 0)
+        phase1_grid.addWidget(self.phase1_config_edit, row, 1)
+        phase1_grid.addWidget(self.phase1_config_button, row, 2)
+        row += 1
+
+        self.phase1_profile_edit = QLineEdit()
+        phase1_grid.addWidget(QLabel("Profile（可選）"), row, 0)
+        phase1_grid.addWidget(self.phase1_profile_edit, row, 1, 1, 2)
+        row += 1
+
+        self.phase1_apply_review_edit = QLineEdit()
+        self.phase1_apply_review_button = QPushButton("選擇 JSON")
+        phase1_grid.addWidget(QLabel("reviewed JSON"), row, 0)
+        phase1_grid.addWidget(self.phase1_apply_review_edit, row, 1)
+        phase1_grid.addWidget(self.phase1_apply_review_button, row, 2)
+        row += 1
+
+        self.phase1_reviewed_output_edit = QLineEdit()
+        self.phase1_reviewed_output_button = QPushButton("選擇輸出檔")
+        phase1_grid.addWidget(QLabel("reviewed 輸出檔"), row, 0)
+        phase1_grid.addWidget(self.phase1_reviewed_output_edit, row, 1)
+        phase1_grid.addWidget(self.phase1_reviewed_output_button, row, 2)
+        row += 1
+
+        self.phase1_run_button = QPushButton("執行 Phase 1")
+        phase1_grid.addWidget(self.phase1_run_button, row, 1, 1, 2)
+        row += 1
+
+        self.phase1_result_label = QLabel("Phase 1 尚未執行")
+        phase1_grid.addWidget(self.phase1_result_label, row, 0, 1, 3)
+        row += 1
+
+        self.phase1_error_label = QLabel("")
+        phase1_grid.addWidget(self.phase1_error_label, row, 0, 1, 3)
+
+        layout.addWidget(phase1_box)
+
         action_row = QHBoxLayout()
         self.start_button = QPushButton("開始執行")
         self.apply_review_button = QPushButton("套用複核結果")
@@ -241,6 +309,13 @@ class MainWindow(QMainWindow):
         self.term_dict_button.clicked.connect(self._pick_term_dict_file)
         self.high_risk_rules_button.clicked.connect(self._pick_high_risk_rules_file)
         self.apply_review_summary_button.clicked.connect(self._pick_apply_review_summary_file)
+        self.phase1_operation_combo.currentIndexChanged.connect(self._apply_phase1_mode_state)
+        self.phase1_input_button.clicked.connect(self._pick_phase1_input_file)
+        self.phase1_output_dir_button.clicked.connect(self._pick_phase1_output_dir)
+        self.phase1_config_button.clicked.connect(self._pick_phase1_config_file)
+        self.phase1_apply_review_button.clicked.connect(self._pick_phase1_apply_review_file)
+        self.phase1_reviewed_output_button.clicked.connect(self._pick_phase1_reviewed_output_file)
+        self.phase1_run_button.clicked.connect(self._run_phase1)
         self.output_dir_edit.textEdited.connect(self._on_output_dir_text_edited)
         self.start_button.clicked.connect(self._start)
         self.apply_review_button.clicked.connect(self._start_apply_review)
@@ -318,6 +393,140 @@ class MainWindow(QMainWindow):
         )
         if path:
             self.apply_review_summary_edit.setText(normalize_path_for_display(path))
+
+    def _apply_phase1_mode_state(self) -> None:
+        operation = str(self.phase1_operation_combo.currentData() or "analyze")
+        needs_output_dir = operation in {"convert", "apply_review"}
+        needs_apply_review = operation == "apply_review"
+
+        self.phase1_output_dir_edit.setEnabled(needs_output_dir)
+        self.phase1_output_dir_button.setEnabled(needs_output_dir)
+        self.phase1_apply_review_edit.setEnabled(needs_apply_review)
+        self.phase1_apply_review_button.setEnabled(needs_apply_review)
+        self.phase1_reviewed_output_edit.setEnabled(needs_apply_review)
+        self.phase1_reviewed_output_button.setEnabled(needs_apply_review)
+
+    def _pick_phase1_input_file(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "選擇 Phase 1 輸入檔案", "", "Word 文件 (*.docx)")
+        if path:
+            self.phase1_input_edit.setText(normalize_path_for_display(path))
+
+    def _pick_phase1_output_dir(self) -> None:
+        path = QFileDialog.getExistingDirectory(self, "選擇 Phase 1 輸出資料夾")
+        if path:
+            self.phase1_output_dir_edit.setText(normalize_path_for_display(path))
+
+    def _pick_phase1_config_file(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "選擇 Phase 1 設定檔", "", "YAML (*.yaml *.yml)")
+        if path:
+            self.phase1_config_edit.setText(normalize_path_for_display(path))
+
+    def _pick_phase1_apply_review_file(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "選擇 reviewed JSON", "", "JSON (*.json)")
+        if path:
+            self.phase1_apply_review_edit.setText(normalize_path_for_display(path))
+
+    def _pick_phase1_reviewed_output_file(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(self, "選擇 reviewed 輸出檔", "", "Word 文件 (*.docx)")
+        if path:
+            self.phase1_reviewed_output_edit.setText(normalize_path_for_display(path))
+
+    def _phase1_optional_path(self, text: str) -> Path | None:
+        stripped = text.strip()
+        return Path(stripped) if stripped else None
+
+    def _build_phase1_request(self) -> phase1_worker.Phase1GuiRequest:
+        operation = str(self.phase1_operation_combo.currentData() or "analyze")
+        input_text = self.phase1_input_edit.text().strip()
+        output_dir_text = self.phase1_output_dir_edit.text().strip()
+        apply_review_text = self.phase1_apply_review_edit.text().strip()
+        reviewed_output_text = self.phase1_reviewed_output_edit.text().strip()
+
+        if not input_text:
+            raise ValueError("請先輸入 Phase 1 輸入檔案。")
+        if operation == "convert" and not output_dir_text:
+            raise ValueError("Convert 模式需要輸出資料夾。")
+        if operation == "apply_review":
+            if not apply_review_text:
+                raise ValueError("Apply Review 模式需要 reviewed JSON。")
+            if not output_dir_text and not reviewed_output_text:
+                raise ValueError("Apply Review 模式需要輸出資料夾或 reviewed 輸出檔。")
+
+        profile = self.phase1_profile_edit.text().strip() or None
+        return phase1_worker.Phase1GuiRequest(
+            operation=operation,
+            input_path=Path(input_text),
+            output_dir=self._phase1_optional_path(output_dir_text),
+            config_path=self._phase1_optional_path(self.phase1_config_edit.text()),
+            profile=profile,
+            apply_review_path=self._phase1_optional_path(apply_review_text),
+            reviewed_output_path=self._phase1_optional_path(reviewed_output_text),
+        )
+
+    def _run_phase1(self) -> None:
+        try:
+            request = self._build_phase1_request()
+        except ValueError as exc:
+            self.phase1_error_label.setText(str(exc))
+            QMessageBox.warning(self, "Phase 1 輸入錯誤", str(exc))
+            return
+
+        self.phase1_error_label.setText("")
+        try:
+            result = phase1_worker.run_phase1_gui_request(request)
+        except Exception as exc:
+            message = f"Phase 1 執行失敗：{exc}"
+            self.phase1_result_label.setText("Phase 1 執行失敗")
+            self.phase1_error_label.setText(message)
+            QMessageBox.critical(self, "Phase 1 執行失敗", message)
+            return
+
+        self._last_phase1_result = result
+        self._show_phase1_result(result)
+
+    def _show_phase1_result(self, result) -> None:
+        schema = getattr(result, "schema", None)
+        errors = list(getattr(schema, "errors", []) or [])
+        config_check = getattr(result, "config_check", None)
+        config_warnings = list(getattr(config_check, "warnings", []) or [])
+        operation = str(getattr(result, "operation", ""))
+        output_path = getattr(result, "output_path", None)
+        error_count = len(errors)
+        warning_count = len(config_warnings)
+
+        if operation == "analyze":
+            summary = (
+                f"Analyze | 章節候選數={len(getattr(schema, 'chapter_candidates', []) or [])} | "
+                f"高風險候選數={len(getattr(schema, 'review_candidates', []) or [])} | "
+                f"段落合併候選數={len(getattr(schema, 'paragraph_merge_candidates', []) or [])} | "
+                f"錯誤數={error_count} | 設定警告數={warning_count}"
+            )
+        elif operation == "convert":
+            summary = (
+                f"Convert | 輸出檔案={output_path or ''} | "
+                f"高風險候選數={len(getattr(schema, 'review_candidates', []) or [])} | "
+                f"錯誤數={error_count} | 設定警告數={warning_count}"
+            )
+        elif operation == "apply_review":
+            apply_result = getattr(result, "apply_result", None)
+            summary = (
+                f"Apply Review | 輸出檔案={output_path or ''} | "
+                f"套用數={int(getattr(apply_result, 'applied_count', 0) or 0)} | "
+                f"略過數={int(getattr(apply_result, 'skipped_count', 0) or 0)} | "
+                f"失敗數={int(getattr(apply_result, 'failed_count', 0) or 0)} | "
+                f"錯誤數={error_count} | 設定警告數={warning_count}"
+            )
+        else:
+            summary = f"Phase 1 | 操作={operation} | 錯誤數={error_count} | 設定警告數={warning_count}"
+
+        self.phase1_result_label.setText(summary)
+        if errors:
+            first = errors[0]
+            code = getattr(first, "code", "")
+            message = getattr(first, "message", "")
+            self.phase1_error_label.setText(f"第一個錯誤：{code} {message}".strip())
+        else:
+            self.phase1_error_label.setText("")
 
     def _on_profile_changed(self, _index: int) -> None:
         selected = self.profile_combo.currentData()

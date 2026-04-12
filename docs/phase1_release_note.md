@@ -13,17 +13,18 @@ Phase 1 mainline is frozen and verified.
 - `--reviewed-output` contract finalization.
 - legacy CLI first-pass forwarding.
 - GUI Phase 1 worker first-pass integration.
+- GUI main window first-pass minimal integration.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 137 passed.
+- Full pytest passed: 144 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
 ## Not Included
 
-- GUI main window full integration.
+- full GUI integration.
 - TOC.
 - paragraph merge apply.
 - run-level formatting fidelity.
