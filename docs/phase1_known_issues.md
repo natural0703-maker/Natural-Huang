@@ -30,9 +30,9 @@ GUI 主視窗第一版已完成最小接線，可最小操作 Phase 1 的 analyz
 
 Phase 2C 已完成 convert 流程的 TOC 最小方案，Phase 2D-1 已完成 apply_review 流程的 TOC 支援，Phase 2D-2 已完成 report TOC 狀態摘要，Phase 2D-3 已完成 GUI TOC 狀態摘要顯示；但尚未支援 TOC GUI 操作、既有 TOC 更新 / 合併、多層目錄、頁碼更新等更完整的 TOC 行為。
 
-### 1.5 paragraph merge 後續 GUI 與診斷仍未完成
+### 1.5 paragraph merge 後續 GUI 與詳細診斷仍未完成
 
-Phase 2E-2 已完成 paragraph merge apply 最小套用，Phase 2E-3 已完成 paragraph merge summary 與 JSON / TXT report 輸出，Phase 2E-4 已完成 GUI paragraph merge summary 顯示；但 GUI paragraph merge controls、source mismatch 診斷面板仍未完成。
+Phase 2E-2 已完成 paragraph merge apply 最小套用，Phase 2E-3 已完成 paragraph merge summary 與 JSON / TXT report 輸出，Phase 2E-4 已完成 GUI paragraph merge summary 顯示，Phase 2F-1 已完成 paragraph merge source mismatch diagnostics 最小統計摘要；但 GUI diagnostics 顯示、source mismatch 詳細診斷面板、GUI paragraph merge controls、reviewed JSON editor 仍未完成。
 
 ### 1.6 run-level 格式保真尚未實作
 
@@ -124,8 +124,12 @@ Phase 2E-3 已完成 paragraph merge result summary 與 JSON / TXT report 輸出
 
 Phase 2E-4 已完成 GUI paragraph merge summary 顯示：GUI 結果摘要區現在會固定顯示段落合併套用數、略過數、失敗數與結果碼摘要，且固定接在 TOC 摘要後面。analyze / convert 會顯示預設 `0 / 0 / 0 / 無`，`codes` 非空時依 code 名稱排序輸出。此能力不包含 GUI paragraph merge controls、source mismatch 診斷面板、reviewed JSON 編輯器或 paragraph merge apply 核心規則變更。
 
+### 3.15 Phase 2F-1 paragraph merge source mismatch diagnostics 最小統計摘要已完成
+
+Phase 2F-1 已完成 paragraph merge source mismatch diagnostics 最小統計摘要：`ReviewApplyResult` 目前會帶出 `paragraph_merge_diagnostics`，可統計 `source_mismatch_count`、`next_source_mismatch_count`、`total_mismatch_count` 與最多 3 筆 `sample_candidate_ids`。JSON report top-level 已新增 `paragraph_merge_diagnostics`，TXT report 已新增 mismatch 總數、前段 mismatch、後段 mismatch 與範例候選摘要。此能力不包含 GUI diagnostics 顯示、source mismatch 詳細診斷面板、expected / actual 全文 diff、paragraph index 詳細清單或所有 candidate_id 清單輸出。
+
 ## 4. 驗證狀態
 
-- 完整 pytest：`228 passed`
+- 完整 pytest：`236 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過

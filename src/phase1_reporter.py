@@ -45,6 +45,7 @@ def build_phase1_report_payload(result: Phase1StubResult) -> dict[str, Any]:
         "counts": counts,
         "toc": _toc_payload(result),
         "paragraph_merge": _paragraph_merge_payload(result),
+        "paragraph_merge_diagnostics": _paragraph_merge_diagnostics_payload(result),
         "config_warnings": _config_warnings(result),
         "errors": [_error_to_dict(error) for error in schema.errors],
     }
@@ -136,6 +137,10 @@ def _build_txt_report(payload: dict[str, Any]) -> str:
         f"段落合併略過數：{payload['paragraph_merge']['skipped_count']}",
         f"段落合併失敗數：{payload['paragraph_merge']['failed_count']}",
         f"段落合併結果碼摘要：{_format_paragraph_merge_codes(payload['paragraph_merge']['codes'])}",
+        f"段落合併 mismatch 總數：{payload['paragraph_merge_diagnostics']['total_mismatch_count']}",
+        f"段落合併前段 mismatch：{payload['paragraph_merge_diagnostics']['source_mismatch_count']}",
+        f"段落合併後段 mismatch：{payload['paragraph_merge_diagnostics']['next_source_mismatch_count']}",
+        f"段落合併 mismatch 範例候選：{_format_sample_candidate_ids(payload['paragraph_merge_diagnostics']['sample_candidate_ids'])}",
         f"設定警告數：{len(payload['config_warnings'])}",
     ]
     if payload["operation"] == "apply_review":
@@ -193,10 +198,34 @@ def _paragraph_merge_payload(result: Phase1StubResult) -> dict[str, Any]:
     }
 
 
+def _paragraph_merge_diagnostics_payload(result: Phase1StubResult) -> dict[str, Any]:
+    apply_result = result.apply_result
+    diagnostics = getattr(apply_result, "paragraph_merge_diagnostics", None) if apply_result is not None else None
+    if diagnostics is None:
+        return {
+            "total_mismatch_count": 0,
+            "source_mismatch_count": 0,
+            "next_source_mismatch_count": 0,
+            "sample_candidate_ids": [],
+        }
+    return {
+        "total_mismatch_count": diagnostics.total_mismatch_count,
+        "source_mismatch_count": diagnostics.source_mismatch_count,
+        "next_source_mismatch_count": diagnostics.next_source_mismatch_count,
+        "sample_candidate_ids": list(diagnostics.sample_candidate_ids),
+    }
+
+
 def _format_paragraph_merge_codes(codes: dict[str, int]) -> str:
     if not codes:
         return "無"
     return ", ".join(f"{code}={count}" for code, count in sorted(codes.items()))
+
+
+def _format_sample_candidate_ids(candidate_ids: list[str]) -> str:
+    if not candidate_ids:
+        return "無"
+    return ", ".join(candidate_ids[:3])
 
 
 def _config_warnings(result: Phase1StubResult) -> list[str]:

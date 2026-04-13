@@ -34,6 +34,9 @@ PARAGRAPH_MERGE_FAILED_CODES = frozenset(
 PARAGRAPH_MERGE_RESULT_CODES = (
     PARAGRAPH_MERGE_APPLIED_CODES | PARAGRAPH_MERGE_SKIPPED_CODES | PARAGRAPH_MERGE_FAILED_CODES
 )
+PARAGRAPH_MERGE_SOURCE_TEXT_MISMATCH = "SOURCE_TEXT_MISMATCH"
+PARAGRAPH_MERGE_NEXT_SOURCE_TEXT_MISMATCH = "NEXT_SOURCE_TEXT_MISMATCH"
+PARAGRAPH_MERGE_DIAGNOSTIC_SAMPLE_LIMIT = 3
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,7 @@ class ReviewApplyCandidateResult:
     paragraph_index: int | None
     applied: bool
     message: str
+    detail_code: str = ""
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,14 @@ class ParagraphMergeSummary:
     skipped_count: int = 0
     failed_count: int = 0
     codes: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ParagraphMergeDiagnostics:
+    source_mismatch_count: int = 0
+    next_source_mismatch_count: int = 0
+    total_mismatch_count: int = 0
+    sample_candidate_ids: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -64,6 +76,7 @@ class ReviewApplyResult:
     skipped_count: int
     failed_count: int
     paragraph_merge_summary: ParagraphMergeSummary = field(default_factory=ParagraphMergeSummary)
+    paragraph_merge_diagnostics: ParagraphMergeDiagnostics = field(default_factory=ParagraphMergeDiagnostics)
 
 
 def apply_review_docx(
@@ -165,6 +178,7 @@ def apply_review_docx(
     skipped_count = sum(1 for item in candidate_results if not item.applied and _is_skipped_result(item.result_code))
     failed_count = sum(1 for item in candidate_results if not item.applied and not _is_skipped_result(item.result_code))
     paragraph_merge_summary = build_paragraph_merge_summary(candidate_results)
+    paragraph_merge_diagnostics = build_paragraph_merge_diagnostics(candidate_results)
     return ReviewApplyResult(
         schema=ReviewSchema(toc=toc),
         output_path=output_path,
@@ -174,6 +188,7 @@ def apply_review_docx(
         skipped_count=skipped_count,
         failed_count=failed_count,
         paragraph_merge_summary=paragraph_merge_summary,
+        paragraph_merge_diagnostics=paragraph_merge_diagnostics,
     )
 
 
@@ -186,6 +201,31 @@ def build_paragraph_merge_summary(candidate_results: list[ReviewApplyCandidateRe
         skipped_count=sum(codes[code] for code in PARAGRAPH_MERGE_SKIPPED_CODES),
         failed_count=sum(codes[code] for code in PARAGRAPH_MERGE_FAILED_CODES),
         codes=dict(sorted(codes.items())),
+    )
+
+
+def build_paragraph_merge_diagnostics(
+    candidate_results: list[ReviewApplyCandidateResult],
+) -> ParagraphMergeDiagnostics:
+    source_mismatch_count = 0
+    next_source_mismatch_count = 0
+    sample_candidate_ids: list[str] = []
+    for item in candidate_results:
+        if item.result_code != "PARAGRAPH_MERGE_SOURCE_MISMATCH":
+            continue
+        detail_codes = set(filter(None, item.detail_code.split("|")))
+        if PARAGRAPH_MERGE_SOURCE_TEXT_MISMATCH in detail_codes:
+            source_mismatch_count += 1
+        if PARAGRAPH_MERGE_NEXT_SOURCE_TEXT_MISMATCH in detail_codes:
+            next_source_mismatch_count += 1
+        if item.candidate_id and item.candidate_id not in sample_candidate_ids:
+            if len(sample_candidate_ids) < PARAGRAPH_MERGE_DIAGNOSTIC_SAMPLE_LIMIT:
+                sample_candidate_ids.append(item.candidate_id)
+    return ParagraphMergeDiagnostics(
+        source_mismatch_count=source_mismatch_count,
+        next_source_mismatch_count=next_source_mismatch_count,
+        total_mismatch_count=source_mismatch_count + next_source_mismatch_count,
+        sample_candidate_ids=sample_candidate_ids,
     )
 
 
@@ -291,8 +331,19 @@ def _apply_paragraph_merge_candidates(
             )
             continue
         if previous_text != candidate["source_text"] or next_text != candidate["next_source_text"]:
+            detail_codes = []
+            if previous_text != candidate["source_text"]:
+                detail_codes.append(PARAGRAPH_MERGE_SOURCE_TEXT_MISMATCH)
+            if next_text != candidate["next_source_text"]:
+                detail_codes.append(PARAGRAPH_MERGE_NEXT_SOURCE_TEXT_MISMATCH)
             candidate_results.append(
-                _candidate_result(candidate, "PARAGRAPH_MERGE_SOURCE_MISMATCH", False, "merge candidate 來源文字與目前文件不符。")
+                _candidate_result(
+                    candidate,
+                    "PARAGRAPH_MERGE_SOURCE_MISMATCH",
+                    False,
+                    "merge candidate 來源文字與目前文件不符。",
+                    detail_code="|".join(detail_codes),
+                )
             )
             continue
 
@@ -434,7 +485,13 @@ def _validate_candidate(item: Any) -> tuple[dict[str, Any] | None, ReviewApplyCa
     return candidate, None
 
 
-def _candidate_result(candidate: dict[str, Any], code: str, applied: bool, message: str) -> ReviewApplyCandidateResult:
+def _candidate_result(
+    candidate: dict[str, Any],
+    code: str,
+    applied: bool,
+    message: str,
+    detail_code: str = "",
+) -> ReviewApplyCandidateResult:
     paragraph_index = candidate.get("paragraph_index")
     return ReviewApplyCandidateResult(
         candidate_id=str(candidate.get("candidate_id", "")),
@@ -443,6 +500,7 @@ def _candidate_result(candidate: dict[str, Any], code: str, applied: bool, messa
         paragraph_index=paragraph_index if isinstance(paragraph_index, int) else None,
         applied=applied,
         message=message,
+        detail_code=detail_code,
     )
 
 
@@ -522,4 +580,5 @@ def _flow_error_record(error: ErrorRecord) -> ReviewApplyResult:
         skipped_count=0,
         failed_count=0,
         paragraph_merge_summary=ParagraphMergeSummary(),
+        paragraph_merge_diagnostics=ParagraphMergeDiagnostics(),
     )

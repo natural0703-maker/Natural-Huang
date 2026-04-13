@@ -38,6 +38,7 @@ def test_json_payload_key_order_and_null_output_path() -> None:
         "counts",
         "toc",
         "paragraph_merge",
+        "paragraph_merge_diagnostics",
         "config_warnings",
         "errors",
         "analyze",
