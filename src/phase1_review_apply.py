@@ -37,6 +37,15 @@ PARAGRAPH_MERGE_RESULT_CODES = (
 PARAGRAPH_MERGE_SOURCE_TEXT_MISMATCH = "SOURCE_TEXT_MISMATCH"
 PARAGRAPH_MERGE_NEXT_SOURCE_TEXT_MISMATCH = "NEXT_SOURCE_TEXT_MISMATCH"
 PARAGRAPH_MERGE_DIAGNOSTIC_SAMPLE_LIMIT = 3
+PARAGRAPH_MERGE_DIAGNOSTIC_PREVIEW_LIMIT = 40
+
+
+@dataclass(frozen=True)
+class ParagraphMergeDiagnosticsPanelEntry:
+    candidate_id: str
+    mismatch_type: str
+    expected_preview: str
+    actual_preview: str
 
 
 @dataclass(frozen=True)
@@ -48,6 +57,7 @@ class ReviewApplyCandidateResult:
     applied: bool
     message: str
     detail_code: str = ""
+    diagnostic_entries: list[ParagraphMergeDiagnosticsPanelEntry] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -64,6 +74,7 @@ class ParagraphMergeDiagnostics:
     next_source_mismatch_count: int = 0
     total_mismatch_count: int = 0
     sample_candidate_ids: list[str] = field(default_factory=list)
+    sample_entries: list[ParagraphMergeDiagnosticsPanelEntry] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -210,6 +221,7 @@ def build_paragraph_merge_diagnostics(
     source_mismatch_count = 0
     next_source_mismatch_count = 0
     sample_candidate_ids: list[str] = []
+    sample_entries: list[ParagraphMergeDiagnosticsPanelEntry] = []
     for item in candidate_results:
         if item.result_code != "PARAGRAPH_MERGE_SOURCE_MISMATCH":
             continue
@@ -221,11 +233,16 @@ def build_paragraph_merge_diagnostics(
         if item.candidate_id and item.candidate_id not in sample_candidate_ids:
             if len(sample_candidate_ids) < PARAGRAPH_MERGE_DIAGNOSTIC_SAMPLE_LIMIT:
                 sample_candidate_ids.append(item.candidate_id)
+        for entry in item.diagnostic_entries:
+            if len(sample_entries) >= PARAGRAPH_MERGE_DIAGNOSTIC_SAMPLE_LIMIT:
+                break
+            sample_entries.append(entry)
     return ParagraphMergeDiagnostics(
         source_mismatch_count=source_mismatch_count,
         next_source_mismatch_count=next_source_mismatch_count,
         total_mismatch_count=source_mismatch_count + next_source_mismatch_count,
         sample_candidate_ids=sample_candidate_ids,
+        sample_entries=sample_entries,
     )
 
 
@@ -332,10 +349,28 @@ def _apply_paragraph_merge_candidates(
             continue
         if previous_text != candidate["source_text"] or next_text != candidate["next_source_text"]:
             detail_codes = []
+            diagnostic_entries: list[ParagraphMergeDiagnosticsPanelEntry] = []
+            candidate_id = str(candidate.get("candidate_id", ""))
             if previous_text != candidate["source_text"]:
                 detail_codes.append(PARAGRAPH_MERGE_SOURCE_TEXT_MISMATCH)
+                diagnostic_entries.append(
+                    ParagraphMergeDiagnosticsPanelEntry(
+                        candidate_id=candidate_id,
+                        mismatch_type="source_text",
+                        expected_preview=_paragraph_merge_diagnostic_preview(candidate["source_text"]),
+                        actual_preview=_paragraph_merge_diagnostic_preview(previous_text),
+                    )
+                )
             if next_text != candidate["next_source_text"]:
                 detail_codes.append(PARAGRAPH_MERGE_NEXT_SOURCE_TEXT_MISMATCH)
+                diagnostic_entries.append(
+                    ParagraphMergeDiagnosticsPanelEntry(
+                        candidate_id=candidate_id,
+                        mismatch_type="next_source_text",
+                        expected_preview=_paragraph_merge_diagnostic_preview(candidate["next_source_text"]),
+                        actual_preview=_paragraph_merge_diagnostic_preview(next_text),
+                    )
+                )
             candidate_results.append(
                 _candidate_result(
                     candidate,
@@ -343,6 +378,7 @@ def _apply_paragraph_merge_candidates(
                     False,
                     "merge candidate 來源文字與目前文件不符。",
                     detail_code="|".join(detail_codes),
+                    diagnostic_entries=diagnostic_entries,
                 )
             )
             continue
@@ -491,6 +527,7 @@ def _candidate_result(
     applied: bool,
     message: str,
     detail_code: str = "",
+    diagnostic_entries: list[ParagraphMergeDiagnosticsPanelEntry] | None = None,
 ) -> ReviewApplyCandidateResult:
     paragraph_index = candidate.get("paragraph_index")
     return ReviewApplyCandidateResult(
@@ -501,7 +538,15 @@ def _candidate_result(
         applied=applied,
         message=message,
         detail_code=detail_code,
+        diagnostic_entries=diagnostic_entries or [],
     )
+
+
+def _paragraph_merge_diagnostic_preview(text: str) -> str:
+    normalized = " ".join(str(text).split()).strip()
+    if len(normalized) <= PARAGRAPH_MERGE_DIAGNOSTIC_PREVIEW_LIMIT:
+        return normalized
+    return normalized[: PARAGRAPH_MERGE_DIAGNOSTIC_PREVIEW_LIMIT - 3] + "..."
 
 
 def _has_conflict(existing: list[tuple[int, int]], char_start: int, char_end: int) -> bool:

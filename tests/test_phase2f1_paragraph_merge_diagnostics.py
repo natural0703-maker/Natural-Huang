@@ -8,6 +8,7 @@ from src.phase1_pipeline import Phase1StubResult
 from src.phase1_reporter import build_phase1_report_payload, write_phase1_reports
 from src.phase1_review_apply import (
     ParagraphMergeDiagnostics,
+    ParagraphMergeDiagnosticsPanelEntry,
     ParagraphMergeSummary,
     ReviewApplyCandidateResult,
     ReviewApplyResult,
@@ -120,6 +121,101 @@ def test_sample_candidate_ids_keep_first_three_in_encounter_order() -> None:
     assert diagnostics.next_source_mismatch_count == 0
     assert diagnostics.total_mismatch_count == 5
     assert diagnostics.sample_candidate_ids == ["merge:0", "merge:1", "merge:2"]
+
+
+def test_sample_entries_keep_first_three_in_encounter_order() -> None:
+    diagnostics = build_paragraph_merge_diagnostics(
+        [
+            ReviewApplyCandidateResult(
+                f"merge:{index}",
+                "accepted",
+                "PARAGRAPH_MERGE_SOURCE_MISMATCH",
+                0,
+                False,
+                "",
+                "SOURCE_TEXT_MISMATCH",
+                diagnostic_entries=[
+                    ParagraphMergeDiagnosticsPanelEntry(
+                        candidate_id=f"merge:{index}",
+                        mismatch_type="source_text",
+                        expected_preview=f"expected {index}",
+                        actual_preview=f"actual {index}",
+                    )
+                ],
+            )
+            for index in range(5)
+        ]
+    )
+
+    assert [entry.candidate_id for entry in diagnostics.sample_entries] == ["merge:0", "merge:1", "merge:2"]
+
+
+def test_mismatch_entries_include_type_and_truncated_single_line_preview(tmp_path) -> None:
+    input_path = tmp_path / "input.docx"
+    review_path = tmp_path / "review.json"
+    output_dir = tmp_path / "out"
+    source_expected = "前段預期第一行\n前段預期第二行" + "甲" * 60
+    source_actual = "前段實際第一行\n前段實際第二行" + "乙" * 60
+    next_expected = "後段預期第一行\n後段預期第二行" + "丙" * 60
+    next_actual = "後段實際第一行\n後段實際第二行" + "丁" * 60
+    _write_docx(input_path, [source_actual, next_actual])
+    _write_review_json(
+        review_path,
+        [
+            _merge_candidate(
+                "merge:preview",
+                source_text=source_expected,
+                next_source_text=next_expected,
+            )
+        ],
+    )
+
+    result = apply_review_docx(input_path, review_path, output_dir, create_toc=False)
+
+    diagnostics = result.paragraph_merge_diagnostics
+    assert diagnostics.source_mismatch_count == 1
+    assert diagnostics.next_source_mismatch_count == 1
+    assert diagnostics.total_mismatch_count == 2
+    assert [entry.mismatch_type for entry in diagnostics.sample_entries] == ["source_text", "next_source_text"]
+    assert [entry.candidate_id for entry in diagnostics.sample_entries] == ["merge:preview", "merge:preview"]
+    for entry in diagnostics.sample_entries:
+        assert "\n" not in entry.expected_preview
+        assert "\n" not in entry.actual_preview
+        assert len(entry.expected_preview) <= 40
+        assert len(entry.actual_preview) <= 40
+        assert entry.expected_preview.endswith("...")
+        assert entry.actual_preview.endswith("...")
+        assert entry.expected_preview not in {source_expected, next_expected}
+        assert entry.actual_preview not in {source_actual, next_actual}
+
+
+def test_sample_entries_do_not_change_existing_summary_counts() -> None:
+    diagnostics = build_paragraph_merge_diagnostics(
+        [
+            ReviewApplyCandidateResult(
+                "merge:1",
+                "accepted",
+                "PARAGRAPH_MERGE_SOURCE_MISMATCH",
+                0,
+                False,
+                "",
+                "SOURCE_TEXT_MISMATCH|NEXT_SOURCE_TEXT_MISMATCH",
+                diagnostic_entries=[
+                    ParagraphMergeDiagnosticsPanelEntry("merge:1", "source_text", "expected", "actual"),
+                    ParagraphMergeDiagnosticsPanelEntry("merge:1", "next_source_text", "next expected", "next actual"),
+                ],
+            )
+        ]
+    )
+    result = _apply_result_with_diagnostics(diagnostics)
+
+    assert diagnostics.source_mismatch_count == 1
+    assert diagnostics.next_source_mismatch_count == 1
+    assert diagnostics.total_mismatch_count == 2
+    assert result.paragraph_merge_summary == ParagraphMergeSummary(
+        failed_count=1,
+        codes={"PARAGRAPH_MERGE_SOURCE_MISMATCH": 1},
+    )
 
 
 def test_json_report_contains_top_level_paragraph_merge_diagnostics() -> None:

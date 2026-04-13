@@ -32,7 +32,7 @@ Phase 2C 已完成 convert 流程的 TOC 最小方案，Phase 2D-1 已完成 app
 
 ### 1.5 paragraph merge 後續 GUI 與詳細診斷仍未完成
 
-Phase 2E-2 已完成 paragraph merge apply 最小套用，Phase 2E-3 已完成 paragraph merge summary 與 JSON / TXT report 輸出，Phase 2E-4 已完成 GUI paragraph merge summary 顯示，Phase 2F-1 已完成 paragraph merge source mismatch diagnostics 最小統計摘要，Phase 2F-2 已完成 GUI paragraph merge diagnostics 顯示；但 GUI diagnostics controls、source mismatch detailed diagnostics panel、GUI paragraph merge controls、reviewed JSON editor 仍未完成。
+Phase 2E-2 已完成 paragraph merge apply 最小套用，Phase 2E-3 已完成 paragraph merge summary 與 JSON / TXT report 輸出，Phase 2E-4 已完成 GUI paragraph merge summary 顯示，Phase 2F-1 已完成 paragraph merge source mismatch diagnostics 最小統計摘要，Phase 2F-2 已完成 GUI paragraph merge diagnostics 顯示，Phase 2F-3A 已完成 diagnostics sample entries 結構；但 GUI detailed diagnostics panel、GUI diagnostics controls、source mismatch detailed diagnostics panel、GUI paragraph merge controls、reviewed JSON editor 仍未完成。
 
 ### 1.6 run-level 格式保真尚未實作
 
@@ -132,8 +132,12 @@ Phase 2F-1 已完成 paragraph merge source mismatch diagnostics 最小統計摘
 
 Phase 2F-2 已完成 GUI paragraph merge diagnostics 顯示：GUI 結果摘要區現在會固定顯示段落合併 mismatch 總數、前段 mismatch、後段 mismatch 與 mismatch 範例候選，並固定接在 paragraph merge summary 後面。analyze / convert 會顯示預設 `0 / 0 / 0 / 無`，`sample_candidate_ids` 有值時以 `id1, id2` 形式顯示。此能力不包含 GUI diagnostics controls、source mismatch detailed diagnostics panel、reviewed JSON editor 或 paragraph merge apply 核心規則變更。
 
+### 3.17 Phase 2F-3A diagnostics sample entries 結構已完成
+
+Phase 2F-3A 已完成 diagnostics sample entries 結構：`ParagraphMergeDiagnosticsPanelEntry` 已新增，`ParagraphMergeDiagnostics` 目前可帶出 `sample_entries`。sample entries 只針對 paragraph merge 的 source mismatch 類型產生，`mismatch_type` 僅區分 `source_text` 與 `next_source_text`，最多保留前 3 筆並維持 encounter order。preview 會將換行壓成單一空白、strip 前後空白、最多保留 40 字元，超過時尾端加 `...`。此能力不保存全文 diff、paragraph index 詳細清單或 expected / actual 全文，且不改變 diagnostics count 與 paragraph merge summary 契約。
+
 ## 4. 驗證狀態
 
-- 完整 pytest：`240 passed`
+- 完整 pytest：`243 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過
