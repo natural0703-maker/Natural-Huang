@@ -325,6 +325,7 @@ def test_phase1_main_window_analyze_shows_default_paragraph_merge_diagnostics(mo
     assert "段落合併前段 mismatch：0" in text
     assert "段落合併後段 mismatch：0" in text
     assert "段落合併 mismatch 範例候選：無" in text
+    assert "段落合併 mismatch 範例：無" in text
 
 
 def test_phase1_main_window_apply_review_shows_paragraph_merge_diagnostics(monkeypatch, window) -> None:
@@ -395,6 +396,82 @@ def test_phase1_main_window_apply_review_shows_empty_paragraph_merge_diagnostic_
     window._run_phase1()
 
     assert "段落合併 mismatch 範例候選：無" in window.phase1_result_label.text()
+    assert "段落合併 mismatch 範例：無" in window.phase1_result_label.text()
+
+
+def test_phase1_main_window_apply_review_shows_readonly_diagnostic_sample_entries(
+    monkeypatch, window
+) -> None:
+    merge_diagnostics = SimpleNamespace(
+        total_mismatch_count=4,
+        source_mismatch_count=2,
+        next_source_mismatch_count=2,
+        sample_candidate_ids=["id1", "id2", "id3"],
+        sample_entries=[
+            SimpleNamespace(
+                candidate_id="id1",
+                mismatch_type="source_text",
+                expected_preview="預期前段",
+                actual_preview="目前前段",
+            ),
+            SimpleNamespace(
+                candidate_id="id2",
+                mismatch_type="next_source_text",
+                expected_preview="預期後段",
+                actual_preview="目前後段",
+            ),
+            SimpleNamespace(
+                candidate_id="id3",
+                mismatch_type="custom_type",
+                expected_preview="預期未知",
+                actual_preview="目前未知",
+            ),
+            SimpleNamespace(
+                candidate_id="id4",
+                mismatch_type="source_text",
+                expected_preview="不應顯示",
+                actual_preview="不應顯示",
+            ),
+        ],
+    )
+    apply_result = SimpleNamespace(
+        applied_count=1,
+        skipped_count=0,
+        failed_count=0,
+        paragraph_merge_diagnostics=merge_diagnostics,
+    )
+    expected = SimpleNamespace(
+        operation="apply_review",
+        schema=ReviewSchema(toc=TocState()),
+        config_check=SimpleNamespace(warnings=[]),
+        output_path=Path("reviewed.docx"),
+        apply_result=apply_result,
+    )
+    monkeypatch.setattr(main_window_clean.phase1_worker, "run_phase1_gui_request", lambda request: expected)
+
+    _set_phase1_operation(window, "apply_review")
+    window.phase1_input_edit.setText("converted.docx")
+    window.phase1_apply_review_edit.setText("reviewed.json")
+    window.phase1_output_dir_edit.setText("out")
+
+    window._run_phase1()
+
+    text = window.phase1_result_label.text()
+    assert "段落合併 mismatch 範例：" in text
+    assert "候選：id1" in text
+    assert "類型：前段 mismatch" in text
+    assert "預期：預期前段" in text
+    assert "目前：目前前段" in text
+    assert "候選：id2" in text
+    assert "類型：後段 mismatch" in text
+    assert "預期：預期後段" in text
+    assert "目前：目前後段" in text
+    assert "候選：id3" in text
+    assert "類型：custom_type" in text
+    assert "預期：預期未知" in text
+    assert "目前：目前未知" in text
+    assert "id4" not in text
+    assert "不應顯示" not in text
 
 
 def test_phase1_main_window_does_not_add_toc_controls(window) -> None:
@@ -413,6 +490,8 @@ def test_phase1_main_window_does_not_add_paragraph_merge_diagnostics_controls(wi
     assert not hasattr(window, "phase1_paragraph_merge_diagnostics_var")
     assert not hasattr(window, "phase1_paragraph_merge_diagnostics_checkbox")
     assert not hasattr(window, "phase1_paragraph_merge_diagnostics_button")
+    assert not hasattr(window, "phase1_paragraph_merge_diagnostics_entries_table")
+    assert not hasattr(window, "phase1_paragraph_merge_diagnostics_entries_button")
 
 
 def test_phase1_main_window_shows_first_schema_error(monkeypatch, window) -> None:

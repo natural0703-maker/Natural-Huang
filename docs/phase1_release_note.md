@@ -27,11 +27,12 @@ Phase 1 mainline is frozen and verified.
 - Phase 2F-1 paragraph merge mismatch diagnostics.
 - Phase 2F-2 GUI merge diagnostics.
 - Phase 2F-3A diagnostics sample entries.
+- Phase 2F-3B GUI diagnostics sample entries.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 243 passed.
+- Full pytest passed: 244 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 

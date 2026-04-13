@@ -77,6 +77,26 @@ def _phase1_paragraph_merge_summary(result: Any) -> dict[str, int | str]:
     }
 
 
+def _phase1_paragraph_merge_mismatch_type_label(raw_type: object) -> str:
+    mismatch_type = str(raw_type)
+    if mismatch_type == "source_text":
+        return "前段 mismatch"
+    if mismatch_type == "next_source_text":
+        return "後段 mismatch"
+    return mismatch_type
+
+
+def _phase1_paragraph_merge_sample_entry_text(index: int, entry: object) -> str:
+    candidate_id = str(getattr(entry, "candidate_id", ""))
+    mismatch_type = _phase1_paragraph_merge_mismatch_type_label(getattr(entry, "mismatch_type", ""))
+    expected_preview = str(getattr(entry, "expected_preview", ""))
+    actual_preview = str(getattr(entry, "actual_preview", ""))
+    return (
+        f"{index}. 候選：{candidate_id}；類型：{mismatch_type}；"
+        f"預期：{expected_preview}；目前：{actual_preview}"
+    )
+
+
 def _phase1_paragraph_merge_diagnostics(result: Any) -> dict[str, int | str]:
     apply_result = getattr(result, "apply_result", None)
     diagnostics = (
@@ -88,6 +108,7 @@ def _phase1_paragraph_merge_diagnostics(result: Any) -> dict[str, int | str]:
             "source_mismatch_count": 0,
             "next_source_mismatch_count": 0,
             "sample_candidate_ids_text": "無",
+            "sample_entries_text": "無",
         }
 
     sample_candidate_ids = list(getattr(diagnostics, "sample_candidate_ids", []) or [])
@@ -95,11 +116,20 @@ def _phase1_paragraph_merge_diagnostics(result: Any) -> dict[str, int | str]:
     if sample_candidate_ids:
         sample_candidate_ids_text = ", ".join(str(candidate_id) for candidate_id in sample_candidate_ids)
 
+    sample_entries = list(getattr(diagnostics, "sample_entries", []) or [])[:3]
+    sample_entries_text = "無"
+    if sample_entries:
+        sample_entries_text = " | ".join(
+            _phase1_paragraph_merge_sample_entry_text(index, entry)
+            for index, entry in enumerate(sample_entries, start=1)
+        )
+
     return {
         "total_mismatch_count": int(getattr(diagnostics, "total_mismatch_count", 0) or 0),
         "source_mismatch_count": int(getattr(diagnostics, "source_mismatch_count", 0) or 0),
         "next_source_mismatch_count": int(getattr(diagnostics, "next_source_mismatch_count", 0) or 0),
         "sample_candidate_ids_text": sample_candidate_ids_text,
+        "sample_entries_text": sample_entries_text,
     }
 
 
@@ -585,7 +615,8 @@ class MainWindow(QMainWindow):
             f"段落合併 mismatch 總數：{merge_diagnostics['total_mismatch_count']} | "
             f"段落合併前段 mismatch：{merge_diagnostics['source_mismatch_count']} | "
             f"段落合併後段 mismatch：{merge_diagnostics['next_source_mismatch_count']} | "
-            f"段落合併 mismatch 範例候選：{merge_diagnostics['sample_candidate_ids_text']}"
+            f"段落合併 mismatch 範例候選：{merge_diagnostics['sample_candidate_ids_text']} | "
+            f"段落合併 mismatch 範例：{merge_diagnostics['sample_entries_text']}"
         )
         self.phase1_result_label.setText(summary)
         if errors:
