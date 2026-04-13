@@ -6,6 +6,8 @@ DOCX 小說簡轉繁工具目前已完成 Phase 1A-1E 主幹，並延伸到 Phas
 
 建議 CLI 入口是 `python -m src.phase1_cli`。`src/cli_v35.py` 定位為 legacy compatibility forwarder，只保留第一版保守轉發；`app.py` 定位為 thin router / launcher，不承擔核心處理邏輯。GUI 已完成 worker 與主視窗第一版最小接線，可操作 analyze / convert / apply_review，並顯示最小結果摘要。
 
+G-3B 已完成評估，結論是目前不做 legacy forwarder runtime 變更；既有轉發 / 不誤轉發契約已受測試保護，目前沒有明確誤判 / 漏判證據。G-3B evaluated; runtime changes are deferred unless clear misforwarding evidence appears.
+
 最新驗證狀態：
 
 - Full pytest passed: 245 passed
@@ -82,7 +84,6 @@ DOCX 小說簡轉繁工具目前已完成 Phase 1A-1E 主幹，並延伸到 Phas
 - advanced TOC behavior.
 - full GUI integration.
 - legacy entry governance runtime changes.
-- G-3B minimal forward condition adjustment.
 - G-4 legacy retirement evaluation.
 - full legacy entry replacement.
 - complete chapter workflow.
@@ -92,5 +93,5 @@ DOCX 小說簡轉繁工具目前已完成 Phase 1A-1E 主幹，並延伸到 Phas
 - GUI paragraph merge controls planning.
 - run-level formatting fidelity planning.
 - chapter workflow planning.
-- G-3B minimal forward condition adjustment planning.
+- G-4 legacy retirement evaluation planning.
 - GUI second-pass planning.

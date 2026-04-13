@@ -161,6 +161,8 @@ report 寫入錯誤會使用固定 stderr 前綴：
 
 `src/cli_v35.py` 已補上基本 help / usage wording 與 forward-guard 防回歸測試，但仍維持保守 forwarder 定位，不是新版完整 CLI。
 
+G-3B 已完成評估，目前沒有新增 forward conditions；新功能仍建議走 `python -m src.phase1_cli`。
+
 ## 10. 目前不支援 / 限制
 
 - `app.py` 目前定位為 thin router / launcher，不承擔核心處理邏輯。

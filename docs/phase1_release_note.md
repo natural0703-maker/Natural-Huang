@@ -51,7 +51,7 @@ Phase 1 mainline is frozen and verified.
 - source mismatch detailed diagnostics panel.
 - reviewed JSON editor.
 - run-level formatting fidelity.
-- G-3B minimal forward condition adjustment.
+- G-3B runtime forward-condition changes; G-3B was evaluated and deferred because existing forward / non-forward contracts are test-protected and no clear misforwarding evidence exists.
 - G-4 legacy retirement evaluation.
 - `app.py` runtime governance changes.
 - new CLI parameters or forwarding condition expansion.

@@ -12,9 +12,10 @@
 
 `src/cli_v35.py` 已在 `--json-report`、`--txt-report`、`--apply-review` 出現時保守轉發到 `src.phase1_cli`，但仍是第一版保守轉發；不建議持續追著新功能擴張。
 
+G-3B 已完成評估，結論是目前暫不實作 runtime 變更；既有轉發 / 不誤轉發契約已受測試保護，目前沒有明確 forward misclassification / missed forwarding evidence。若未來出現明確誤判或漏判證據，再重開評估。
+
 後續仍未完成：
 
-- G-3B 最小 forward 條件修正評估。
 - G-4 legacy 退役評估。
 - `app.py` runtime 角色治理。
 - full legacy entry replacement。
@@ -154,6 +155,10 @@ G-2 已完成 legacy entry governance 的文件 / 使用說明收斂：文件已
 ### 3.20 G-3A legacy forwarder wording / 註解 / 防回歸測試已完成
 
 G-3A 已完成 `src/cli_v35.py` 的 help / usage wording、`_should_forward_to_phase1(argv)` 附近註解與防回歸測試；保守轉發條件未擴張，`--reviewed-output` 仍不單獨觸發轉發。
+
+### 3.21 G-3B legacy forward condition 調整評估已結束
+
+G-3B 已完成評估，結論是目前暫不實作 legacy forwarder runtime 變更。理由是既有轉發 / 不誤轉發契約已受測試保護，目前沒有明確誤判或漏判證據；擴張 forward condition 風險高，容易讓 `src/cli_v35.py` 變成第二套新版 CLI。這是治理決策，不是新功能實作。
 
 ## 4. 驗證狀態
 
