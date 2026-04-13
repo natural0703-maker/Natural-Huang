@@ -18,11 +18,22 @@ _PHASE1_FORWARD_FLAGS = frozenset({"--json-report", "--txt-report", "--apply-rev
 
 
 def _should_forward_to_phase1(argv: list[str]) -> bool:
+    # Keep this forwarding list intentionally conservative. New Phase 1/2
+    # features should prefer `python -m src.phase1_cli`; do not expand legacy
+    # forwarding just because a new flag exists. In particular,
+    # `--reviewed-output` is an output option and must not trigger forwarding
+    # by itself.
     return any(arg in _PHASE1_FORWARD_FLAGS for arg in argv)
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="DOCX 簡轉繁與人工複核回填工具（V3.6）")
+    parser = argparse.ArgumentParser(
+        description=(
+            "DOCX 簡轉繁與人工複核回填工具（V3.6）。"
+            "此入口為 legacy compatibility forwarder；新主幹 CLI 建議使用 "
+            "`python -m src.phase1_cli`，並僅在既有保守條件下轉發到 src.phase1_cli。"
+        )
+    )
     input_group = parser.add_mutually_exclusive_group(required=False)
     input_group.add_argument("--input-file", "--input", dest="input_file", help="單一 .docx 輸入路徑")
     input_group.add_argument("--input-dir", help="資料夾輸入路徑（批次模式）")

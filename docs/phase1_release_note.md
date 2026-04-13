@@ -28,11 +28,13 @@ Phase 1 mainline is frozen and verified.
 - Phase 2F-2 GUI merge diagnostics.
 - Phase 2F-3A diagnostics sample entries.
 - Phase 2F-3B GUI diagnostics sample entries.
+- Phase G-2 legacy entry governance documentation alignment.
+- Phase G-3A legacy forwarder wording and forward-guard tests.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 244 passed.
+- Full pytest passed: 245 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
@@ -49,4 +51,8 @@ Phase 1 mainline is frozen and verified.
 - source mismatch detailed diagnostics panel.
 - reviewed JSON editor.
 - run-level formatting fidelity.
+- G-3B minimal forward condition adjustment.
+- G-4 legacy retirement evaluation.
+- `app.py` runtime governance changes.
+- new CLI parameters or forwarding condition expansion.
 - full legacy entry replacement.

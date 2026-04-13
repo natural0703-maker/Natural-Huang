@@ -35,6 +35,15 @@ pip install -r requirements.txt
 ```
 
 ## 五、CLI 用法
+
+目前新主幹 CLI 建議使用：
+
+```bash
+python -m src.phase1_cli
+```
+
+GUI 可使用目前 GUI 主視窗入口。`src/cli_v35.py` 保留為舊版相容入口，不建議作為新功能主要入口；`app.py` 保留為 thin router / launcher，不承擔核心處理邏輯。`src/cli_v35.py` 已補上基本入口說明與防回歸測試，但仍不是新功能主要入口。
+
 ```bash
 python app.py --input-file "D:\novel.docx" --output-dir "D:\output"
 ```

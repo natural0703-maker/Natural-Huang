@@ -16,7 +16,27 @@
 python -m src.phase1_cli
 ```
 
-## 2. Dispatch 規則
+## 2. 建議入口與相容性定位
+
+新主幹 CLI 建議使用：
+
+```powershell
+python -m src.phase1_cli
+```
+
+GUI 主視窗定位為薄包裝層，透過 `src/gui/phase1_worker.py` 呼叫既有 pipeline；GUI 不重寫 analyzer、converter、review apply 或 reporter 邏輯。
+
+`src/cli_v35.py` 定位為 legacy compatibility forwarder，只在明確、既有的保守條件下轉發到 `src.phase1_cli`。它保留相容性用途，不建議作為新功能的主要入口。
+
+`app.py` 定位為 thin router / launcher，不承擔核心處理邏輯。
+
+相容性原則：
+
+- 現階段不刪除舊入口。
+- 現階段不改舊參數語意。
+- 新功能與新流程優先使用 `python -m src.phase1_cli`。
+
+## 3. Dispatch 規則
 
 CLI 模式由既有參數推導，不新增 `--mode`。
 
@@ -26,7 +46,7 @@ CLI 模式由既有參數推導，不新增 `--mode`。
 
 `--reviewed-output` 只作為 reviewed 輸出路徑相關選項，不單獨觸發 `apply_review`。
 
-## 3. Analyze 範例
+## 4. Analyze 範例
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.phase1_cli `
@@ -37,7 +57,7 @@ CLI 模式由既有參數推導，不新增 `--mode`。
 
 目前 analyze 只讀取 `.docx` 並產生候選資料，不修改原檔。
 
-## 4. Convert 範例
+## 5. Convert 範例
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.phase1_cli `
@@ -56,7 +76,7 @@ CLI 模式由既有參數推導，不新增 `--mode`。
 
 若某段存在高風險候選，該段只做 OpenCC，不套用低風險詞替換。
 
-## 5. Apply Review 範例
+## 6. Apply Review 範例
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.phase1_cli `
@@ -92,7 +112,7 @@ CLI 模式由既有參數推導，不新增 `--mode`。
 - 不自動改名。
 - 未提供時，才使用 `output_dir + {stem}_reviewed.docx` 與 `_001` 避免衝突規則。
 
-## 6. JSON / TXT report
+## 7. JSON / TXT report
 
 可用下列參數輸出 report：
 
@@ -115,7 +135,7 @@ TXT report 行為：
 
 JSON 與 TXT 寫入互相獨立：一者寫入失敗時，另一者仍會嘗試寫入。
 
-## 7. Exit code
+## 8. Exit code
 
 - `0`：流程級 `schema.errors` 為空，且 report 寫入無錯誤。
 - `1`：流程級 `schema.errors` 不為空、report 寫入錯誤，或發生未預期例外。
@@ -127,9 +147,9 @@ report 寫入錯誤會使用固定 stderr 前綴：
 錯誤：{code} {message}
 ```
 
-## 8. 舊 CLI 轉發現況
+## 9. 舊 CLI 轉發現況
 
-`src/cli_v35.py` 在下列參數出現時，會保守轉發到 `src.phase1_cli`：
+`src/cli_v35.py` 是 legacy compatibility forwarder。在下列參數出現時，會保守轉發到 `src.phase1_cli`：
 
 - `--json-report`
 - `--txt-report`
@@ -137,14 +157,18 @@ report 寫入錯誤會使用固定 stderr 前綴：
 
 `--reviewed-output` 不單獨觸發 Phase 1 轉發，只會在已因上述參數轉發時一併傳入。
 
-## 9. 目前不支援 / 限制
+此 legacy 入口不建議作為新功能的主要入口；新功能與新流程請優先使用 `python -m src.phase1_cli`。
 
-- Phase 1 CLI 尚未接入 `app.py`。
+`src/cli_v35.py` 已補上基本 help / usage wording 與 forward-guard 防回歸測試，但仍維持保守 forwarder 定位，不是新版完整 CLI。
+
+## 10. 目前不支援 / 限制
+
+- `app.py` 目前定位為 thin router / launcher，不承擔核心處理邏輯。
 - `src/cli_v35.py` 目前只做第一版保守轉發，未全面改為 Phase 1 CLI。
-- GUI 主視窗尚未正式接入 Phase 1 三模式操作。
-- 尚未支援 TOC 寫入。
-- 不支援 paragraph merge 套用。
-- 不支援 chapter candidate 套用。
+- GUI 主視窗已完成第一版最小接線，但仍不是完整 GUI 重構。
+- TOC 目前僅支援 convert / apply_review 的最小方案，尚未支援進階 TOC 行為。
+- paragraph merge 目前僅支援 apply_review 的最小保守套用，尚未支援 GUI controls 或進階診斷面板。
+- chapter candidate 目前僅支援 accepted chapter candidate 套用為 `Heading 2`，尚未支援完整章節工作流。
 - 尚未支援 GUI 逐筆 reviewed 編輯器。
 - 不支援 GUI reviewed JSON 編輯器。
 - 不支援 `.doc`。

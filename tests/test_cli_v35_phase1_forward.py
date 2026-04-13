@@ -1,5 +1,6 @@
 import src.cli_v35 as cli_v35
 import src.phase1_cli as phase1_cli
+import pytest
 
 
 def test_should_forward_to_phase1_for_report_and_apply_flags() -> None:
@@ -34,6 +35,18 @@ def test_should_not_forward_to_phase1_for_legacy_cli_flags() -> None:
         ]
     )
     assert not cli_v35._should_forward_to_phase1(["--apply-review-summary", "review_summary.xlsx"])
+
+
+def test_help_mentions_legacy_forwarder_and_phase1_cli(capsys) -> None:
+    parser = cli_v35._build_parser()
+
+    with pytest.raises(SystemExit) as exc_info:
+        parser.parse_args(["--help"])
+
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "legacy compatibility forwarder" in captured.out
+    assert "python -m src.phase1_cli" in captured.out
 
 
 def test_main_forwards_phase1_argv_and_exit_code(monkeypatch) -> None:

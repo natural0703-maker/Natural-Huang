@@ -4,13 +4,20 @@
 
 ## 1. 已知未解問題
 
-### 1.1 `app.py` 尚未直接整合新主幹
+### 1.1 `app.py` 入口治理仍未做 runtime 調整
 
-`app.py` 目前仍維持 GUI / CLI 路由角色，尚未直接整合 Phase 1 新主幹流程。
+`app.py` 目前定位為 thin router / launcher，不承擔核心處理邏輯；尚未做完整入口治理調整。
 
-### 1.2 `src/cli_v35.py` 僅完成第一版保守轉發
+### 1.2 `src/cli_v35.py` 仍為 legacy compatibility forwarder
 
-`src/cli_v35.py` 已在 `--json-report`、`--txt-report`、`--apply-review` 出現時保守轉發到 `src.phase1_cli`，但尚未全面改為 Phase 1 CLI 流程。
+`src/cli_v35.py` 已在 `--json-report`、`--txt-report`、`--apply-review` 出現時保守轉發到 `src.phase1_cli`，但仍是第一版保守轉發；不建議持續追著新功能擴張。
+
+後續仍未完成：
+
+- G-3B 最小 forward 條件修正評估。
+- G-4 legacy 退役評估。
+- `app.py` runtime 角色治理。
+- full legacy entry replacement。
 
 ### 1.3 GUI 主視窗仍未完成完整 GUI 整合
 
@@ -140,8 +147,16 @@ Phase 2F-3A 已完成 diagnostics sample entries 結構：`ParagraphMergeDiagnos
 
 Phase 2F-3B 已完成 GUI 唯讀 diagnostics sample entries 顯示：GUI 結果摘要區目前會顯示 `段落合併 mismatch 範例：無`，或最多 3 筆 sample entries。每筆 sample entry 顯示 `candidate_id`、`mismatch_type`、`expected_preview` 與 `actual_preview`；`mismatch_type` 會將 `source_text` 顯示為 `前段 mismatch`、`next_source_text` 顯示為 `後段 mismatch`，未知值則保留原始值。GUI 不對 preview 做二次加工，也不提供 diagnostics controls、reviewed JSON editor、全文 diff、完整 expected / actual 全文、paragraph index 詳細列表或所有 candidate 明細。
 
+### 3.19 G-2 legacy entry governance 文件 / 使用說明收斂已完成
+
+G-2 已完成 legacy entry governance 的文件 / 使用說明收斂：文件已明確標示建議 CLI 入口為 `python -m src.phase1_cli`，`src/cli_v35.py` 為 legacy compatibility forwarder，`app.py` 為 thin router / launcher，且 GUI 仍是透過 worker 呼叫 pipeline 的薄包裝層。
+
+### 3.20 G-3A legacy forwarder wording / 註解 / 防回歸測試已完成
+
+G-3A 已完成 `src/cli_v35.py` 的 help / usage wording、`_should_forward_to_phase1(argv)` 附近註解與防回歸測試；保守轉發條件未擴張，`--reviewed-output` 仍不單獨觸發轉發。
+
 ## 4. 驗證狀態
 
-- 完整 pytest：`244 passed`
+- 完整 pytest：`245 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過
