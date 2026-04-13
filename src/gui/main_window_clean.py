@@ -77,6 +77,32 @@ def _phase1_paragraph_merge_summary(result: Any) -> dict[str, int | str]:
     }
 
 
+def _phase1_paragraph_merge_diagnostics(result: Any) -> dict[str, int | str]:
+    apply_result = getattr(result, "apply_result", None)
+    diagnostics = (
+        getattr(apply_result, "paragraph_merge_diagnostics", None) if apply_result is not None else None
+    )
+    if diagnostics is None:
+        return {
+            "total_mismatch_count": 0,
+            "source_mismatch_count": 0,
+            "next_source_mismatch_count": 0,
+            "sample_candidate_ids_text": "無",
+        }
+
+    sample_candidate_ids = list(getattr(diagnostics, "sample_candidate_ids", []) or [])
+    sample_candidate_ids_text = "無"
+    if sample_candidate_ids:
+        sample_candidate_ids_text = ", ".join(str(candidate_id) for candidate_id in sample_candidate_ids)
+
+    return {
+        "total_mismatch_count": int(getattr(diagnostics, "total_mismatch_count", 0) or 0),
+        "source_mismatch_count": int(getattr(diagnostics, "source_mismatch_count", 0) or 0),
+        "next_source_mismatch_count": int(getattr(diagnostics, "next_source_mismatch_count", 0) or 0),
+        "sample_candidate_ids_text": sample_candidate_ids_text,
+    }
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -522,6 +548,7 @@ class MainWindow(QMainWindow):
         toc_fallback = "是" if bool(getattr(toc, "fallback_used", False)) else "否"
         toc_chapter_count = int(getattr(toc, "chapter_count", 0) or 0)
         merge_summary = _phase1_paragraph_merge_summary(result)
+        merge_diagnostics = _phase1_paragraph_merge_diagnostics(result)
 
         if operation == "analyze":
             summary = (
@@ -554,7 +581,11 @@ class MainWindow(QMainWindow):
             f"段落合併套用數：{merge_summary['applied_count']} | "
             f"段落合併略過數：{merge_summary['skipped_count']} | "
             f"段落合併失敗數：{merge_summary['failed_count']} | "
-            f"段落合併結果碼摘要：{merge_summary['codes_text']}"
+            f"段落合併結果碼摘要：{merge_summary['codes_text']} | "
+            f"段落合併 mismatch 總數：{merge_diagnostics['total_mismatch_count']} | "
+            f"段落合併前段 mismatch：{merge_diagnostics['source_mismatch_count']} | "
+            f"段落合併後段 mismatch：{merge_diagnostics['next_source_mismatch_count']} | "
+            f"段落合併 mismatch 範例候選：{merge_diagnostics['sample_candidate_ids_text']}"
         )
         self.phase1_result_label.setText(summary)
         if errors:
