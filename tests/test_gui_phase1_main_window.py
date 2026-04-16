@@ -325,7 +325,7 @@ def test_phase1_main_window_analyze_shows_default_paragraph_merge_diagnostics(mo
     assert "段落合併前段 mismatch：0" in text
     assert "段落合併後段 mismatch：0" in text
     assert "段落合併 mismatch 範例候選：無" in text
-    assert "段落合併 mismatch 範例：無" in text
+    assert "段落合併 mismatch 詳細範例：無" in text
 
 
 def test_phase1_main_window_apply_review_shows_paragraph_merge_diagnostics(monkeypatch, window) -> None:
@@ -396,7 +396,7 @@ def test_phase1_main_window_apply_review_shows_empty_paragraph_merge_diagnostic_
     window._run_phase1()
 
     assert "段落合併 mismatch 範例候選：無" in window.phase1_result_label.text()
-    assert "段落合併 mismatch 範例：無" in window.phase1_result_label.text()
+    assert "段落合併 mismatch 詳細範例：無" in window.phase1_result_label.text()
 
 
 def test_phase1_main_window_apply_review_shows_readonly_diagnostic_sample_entries(
@@ -457,7 +457,7 @@ def test_phase1_main_window_apply_review_shows_readonly_diagnostic_sample_entrie
     window._run_phase1()
 
     text = window.phase1_result_label.text()
-    assert "段落合併 mismatch 範例：" in text
+    assert "段落合併 mismatch 詳細範例：" in text
     assert "候選：id1" in text
     assert "類型：前段 mismatch" in text
     assert "預期：預期前段" in text

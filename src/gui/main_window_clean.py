@@ -616,7 +616,7 @@ class MainWindow(QMainWindow):
             f"段落合併前段 mismatch：{merge_diagnostics['source_mismatch_count']} | "
             f"段落合併後段 mismatch：{merge_diagnostics['next_source_mismatch_count']} | "
             f"段落合併 mismatch 範例候選：{merge_diagnostics['sample_candidate_ids_text']} | "
-            f"段落合併 mismatch 範例：{merge_diagnostics['sample_entries_text']}"
+            f"段落合併 mismatch 詳細範例：{merge_diagnostics['sample_entries_text']}"
         )
         self.phase1_result_label.setText(summary)
         if errors:
