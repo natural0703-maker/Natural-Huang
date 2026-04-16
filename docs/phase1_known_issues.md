@@ -160,8 +160,24 @@ G-3A 已完成 `src/cli_v35.py` 的 help / usage wording、`_should_forward_to_p
 
 G-3B 已完成評估，結論是目前暫不實作 legacy forwarder runtime 變更。理由是既有轉發 / 不誤轉發契約已受測試保護，目前沒有明確誤判或漏判證據；擴張 forward condition 風險高，容易讓 `src/cli_v35.py` 變成第二套新版 CLI。這是治理決策，不是新功能實作。
 
+### 3.22 Phase I-4E line-break cleanup 最小 `convert` 接入已完成
+
+This capability has entered the `convert` path in a minimal form, but it currently remains internal opt-in and disabled by default.
+
+Current limitations:
+- no CLI flag
+- no GUI toggle
+- no report / GUI summary exposure
+- no `apply_review` integration
+- no paragraph merge integration
+- no run-level formatting fidelity guarantee
+
+The implementation currently targets only eligible ordinary paragraphs and conservatively skips heading, table, list-like, dialogue-like, English-dominant, and special-structure paragraphs.
+
+已解決事項：Phase I-4E completed: minimal internal `convert` integration for line-break cleanup (internal opt-in, default off).
+
 ## 4. 驗證狀態
 
-- 完整 pytest：`245 passed`
+- 完整 pytest：`292 passed`
 - `verify_v2.bat`：通過
 - `verify_v2.ps1`：通過

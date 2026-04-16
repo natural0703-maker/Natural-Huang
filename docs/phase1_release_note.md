@@ -30,11 +30,16 @@ Phase 1 mainline is frozen and verified.
 - Phase 2F-3B GUI diagnostics sample entries.
 - Phase G-2 legacy entry governance documentation alignment.
 - Phase G-3A legacy forwarder wording and forward-guard tests.
+- Added minimal internal line-break cleanup integration in `convert`.
+- The line-break cleanup feature is currently internal opt-in and disabled by default.
+- Line-break cleanup is applied only to eligible ordinary paragraphs after output `.docx` generation and before save.
+- Added isolated line-break cleanup helper, `.docx` selector, `.docx` wrapper, and dedicated convert integration tests.
+- Existing full pytest and verify flows remain passing after line-break cleanup integration.
 - Phase 1 freeze / usage / known issues documentation.
 
 ## Verification
 
-- Full pytest passed: 245 passed.
+- Full pytest passed: 292 passed.
 - `verify_v2.bat` passed.
 - `verify_v2.ps1` passed.
 
@@ -56,3 +61,10 @@ Phase 1 mainline is frozen and verified.
 - `app.py` runtime governance changes.
 - new CLI parameters or forwarding condition expansion.
 - full legacy entry replacement.
+- No CLI flag for line-break cleanup.
+- No GUI toggle for line-break cleanup.
+- No report / GUI summary exposure for line-break cleanup.
+- No `apply_review` integration for line-break cleanup.
+- No paragraph merge integration for line-break cleanup.
+- No run-level formatting fidelity guarantee for line-break cleanup.
+- Line-break cleanup is not enabled by default.
