@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from docx import Document
 
 from src.converter import OpenCCConverter
+from src.docx_line_break_cleanup import DocumentLineBreakCleanupSummary, apply_line_break_cleanup_to_document
 from src.phase1_analyzer import analyze_docx
 from src.phase1_config import Phase1ConfigCheck
 from src.phase2_toc_builder import TOC_STATUS_FAILED, insert_minimal_toc
@@ -19,6 +20,7 @@ class ConvertDocxResult:
     schema: ReviewSchema
     output_path: Path | None
     converted: bool
+    line_break_cleanup_summary: DocumentLineBreakCleanupSummary = field(default_factory=DocumentLineBreakCleanupSummary)
 
 
 def convert_docx(
@@ -26,6 +28,7 @@ def convert_docx(
     output_dir: Path | None,
     config_check: Phase1ConfigCheck,
     create_toc: bool = True,
+    enable_line_break_cleanup: bool = False,
 ) -> ConvertDocxResult:
     if input_path is None:
         # Phase 1C intentionally keeps missing input path and missing file under INPUT_NOT_FOUND
@@ -67,6 +70,10 @@ def convert_docx(
             )
         paragraph.text = converted_text
 
+    line_break_cleanup_summary = DocumentLineBreakCleanupSummary()
+    if enable_line_break_cleanup:
+        line_break_cleanup_summary = apply_line_break_cleanup_to_document(document)
+
     toc = insert_minimal_toc(document, requested=create_toc)
     if toc.status == TOC_STATUS_FAILED:
         return _error_result("TOC_INSERT_FAILED", "無法建立目錄，也無法建立 fallback 章節清單。", "")
@@ -89,6 +96,7 @@ def convert_docx(
         ),
         output_path=output_path,
         converted=True,
+        line_break_cleanup_summary=line_break_cleanup_summary,
     )
 
 

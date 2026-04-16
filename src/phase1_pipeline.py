@@ -21,6 +21,7 @@ class Phase1Options:
     config_path: Path | None = None
     profile: str | None = None
     create_toc: bool = True
+    enable_line_break_cleanup: bool = False
     chapter_page_break: bool = False
     chapter_review_path: Path | None = None
     json_report_path: Path | None = None
@@ -68,7 +69,13 @@ def analyze(options: Phase1Options) -> Phase1StubResult:
 
 def convert(options: Phase1Options) -> Phase1StubResult:
     config_check = load_phase1_config(options.config_path, options.profile)
-    result = convert_docx(options.input_path, options.output_dir, config_check, create_toc=options.create_toc)
+    result = convert_docx(
+        options.input_path,
+        options.output_dir,
+        config_check,
+        create_toc=options.create_toc,
+        enable_line_break_cleanup=options.enable_line_break_cleanup,
+    )
     message = (
         "Phase 1C convert：已輸出 converted DOCX。"
         if result.converted
